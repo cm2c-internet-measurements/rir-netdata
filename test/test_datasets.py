@@ -17,8 +17,9 @@ class TestDatasets(unittest.TestCase):
 		self.assertEqual(1+2, 3)
 
 	def test_csvimport_iscallable(self):
-		im = sql3load()
-		self.assertTrue(csvimport.im)
+		tp = [ ('name', 'text'), ('age', 'integer'), ('weigth', 'float') ]
+		im = sql3load(tp, "tmp/test.db")
+		self.assertTrue(im)
 
 # end class
 

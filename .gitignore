@@ -1,3 +1,9 @@
+# Mac
+.DS_Store
+tmp/*.db
+tmp/*.txt
+tmp/*.html
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
