@@ -1,0 +1,3 @@
+[submodule "lib/cm2c"]
+	path = lib/cm2c
+	url = https://github.com/carlosm3011/cm2c-python-lib.git
