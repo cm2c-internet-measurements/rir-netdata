@@ -3,6 +3,7 @@
 tmp/*.db
 tmp/*.txt
 tmp/*.html
+tmp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
