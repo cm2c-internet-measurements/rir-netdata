@@ -17,7 +17,7 @@ from lacniclabs.delegated.delegated import delegatedStats
 class Test(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self.dsreader = delegatedStats(rir="lacnic", date="latest")
     ## end
 
     def tearDown(self):
