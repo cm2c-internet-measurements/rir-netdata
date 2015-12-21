@@ -82,42 +82,52 @@ class delegatedStats(object):
     # begin
     def _add_prefix_column(self):
         r = self.dbh.addMetaColumn("prefix VARCHAR(80)")
-        p = self.dbh.calculateMetaColumn("prefix", self._populate_prefix_column)
+        mif = lambda x: self._populate_columns("prefix", x)
+        p = self.dbh.calculateMetaColumn("prefix", mif)
         return r
     # end
-    #begin
-    #@staticmethod
-    def _populate_prefix_column(self,w_row):
-        if w_row['type'] == 'ipv4' and w_row['block'] != '*':
-            pfx_len = 32 - int( math.log( int(w_row['length']), 2) )
-            pfx = ipaddr.IPv4Network(w_row['block'] + "/" + str(pfx_len))
-            #w_row['prefix'] = str(pfx)
-            #w_row['istart'] = int(pfx.network)
-            #w_row['iend'] = int(pfx.broadcast)
-            #w_row['equiv'] = (w_row['iend']-w_row['istart'])/256 + 1
-            return str(pfx)
-        elif w_row['type'] == 'ipv6' and w_row['block'] != '*':
-            pfx_norm_base = pow(2,64)
-            #print "row %s" % (dict(w_row))
-            pfx = ipaddr.IPv6Network( w_row['block'] + "/" +  str(w_row['length']) )
-            #w_row['prefix'] = str(pfx)
-            #w_row['istart'] = int(pfx.network) / pfx_norm_base
-            #w_row['iend'] = int(pfx.broadcast) / pfx_norm_base
-            #w_row['equiv'] = (w_row['iend'] - w_row['istart'] + 1) / pow(2,32)
-            return str(pfx)
-        else:
-            #w_row['prefix'] = 'na/asn'
-            #w_row['istart'] = int(w_row['start'])
-            #w_row['iend'] = int(w_row['start']) + int(w_row['value'])
-            #w_row['equiv'] = 'na'
-            return 'na/asn'
-    #end
+
 
     # begin
     def _add_equiv_column(self):
         r = self.dbh.addMetaColumn("equiv INTEGER")
+        mif = lambda x: self._populate_columns("equiv", x)
+        p = self.dbh.calculateMetaColumn("equiv", mif)
         return r
     # end
+
+    #begin
+    def _populate_columns(self, w_col_name, w_row):
+        """
+        Calculates meta columns for the delegated file
+        """
+        record = {}
+        if w_row['type'] == 'ipv4' and w_row['block'] != '*':
+            pfx_len = 32 - int( math.log( int(w_row['length']), 2) )
+            pfx = ipaddr.IPv4Network(w_row['block'] + "/" + str(pfx_len))
+            record['prefix'] = str(pfx)
+            record['istart'] = int(pfx.network)
+            record['iend'] = int(pfx.broadcast)
+            record['equiv'] = (record['iend']-record['istart'])/256 + 1
+            return record[w_col_name]
+        elif w_row['type'] == 'ipv6' and w_row['block'] != '*':
+            pfx_norm_base = pow(2,64)
+            #print "row %s" % (dict(w_row))
+            pfx = ipaddr.IPv6Network( w_row['block'] + "/" +  str(w_row['length']) )
+            record['prefix'] = str(pfx)
+            record['istart'] = int(pfx.network) / pfx_norm_base
+            record['iend'] = int(pfx.broadcast) / pfx_norm_base
+            record['equiv'] = (record['iend'] - record['istart'] + 1) / pow(2,32)
+            return record[w_col_name]
+        elif w_row['type'] == 'asn' and w_row['block'] != '*':
+            record['prefix'] = 'na/asn'
+            record['istart'] = int(w_row['block'])
+            record['iend'] = int(w_row['block']) + int(w_row['length'])
+            record['equiv'] = int(w_row['length'])
+            return record[w_col_name]
+        else:
+            return None
+    #end
 
 ## end
 
