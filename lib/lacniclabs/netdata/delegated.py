@@ -1,8 +1,8 @@
-#########################################################################################
 '''
 delegated.py: Implements delegated API on top of csv import
 (c) carlos@lacnic.net 20151201
 '''
+#########################################################################################
 
 from cm2c.csvimport.sql3load import sql3load
 from cm2c.commons.gen.utils import get_tmp_fn
@@ -99,7 +99,9 @@ class delegatedStats(object):
     #begin
     def _populate_columns(self, w_col_name, w_row):
         """
-        Calculates meta columns for the delegated file
+        Calculates meta columns for the delegated file. 
+        :param w_col_name:  column being calculated
+        :param w_row: dictionary with current row values
         """
         record = {}
         if w_row['type'] == 'ipv4' and w_row['block'] != '*':

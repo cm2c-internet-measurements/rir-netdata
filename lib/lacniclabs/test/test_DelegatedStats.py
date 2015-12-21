@@ -11,7 +11,7 @@ import unittest
 import sys
 import uuid
 
-from lacniclabs.delegated.delegated import delegatedStats
+from lacniclabs.netdata.delegated import delegatedStats
 
 #--
 class Test(unittest.TestCase):
@@ -22,6 +22,7 @@ class Test(unittest.TestCase):
     def setUp(self):
         if not self._setuponce_done:
             self.__class__.dsreader = delegatedStats(local_file="tmp/delegated-extended-lacnic-short")
+            #self.__class__.dsreader = delegatedStats(rir="arin", date="latest")
             self.__class__._setuponce_done = True
         else:
             pass
@@ -71,11 +72,22 @@ class Test(unittest.TestCase):
     def testAddPrefixColumn(self):
         rs = self.__class__.dsreader._add_prefix_column()
         self.assertTrue(rs, "Error creating prefix column")
+        rs1 = self.__class__.dsreader.dbh._rawQuery("SELECT * FROM numres where type='ipv4' AND length=1024")
+        ass_msg = "A length of 1024 should be a prefix ending with /22, rs: %s" % (str(rs1[0]))
+        self.assertTrue(rs1[0]['prefix'].endswith("/22"), ass_msg )
     ## end
 
     def testAddEquivColumn(self):
         rs = self.__class__.dsreader._add_equiv_column()
         self.assertTrue(rs, "Error creating equiv column")
+        #
+        rs1 = self.__class__.dsreader.dbh._rawQuery("SELECT * FROM numres where type='ipv4' AND length=1024")
+        ass_msg = "A length of 1024 should be an equiv of 4 /24s, rs: %s" % (str(rs1[0]))
+        self.assertTrue(rs1[0]['equiv'] == 4, ass_msg )
+        #
+        rs1 = self.__class__.dsreader.dbh._rawQuery("SELECT * FROM numres where type='ipv6' AND length=30")
+        ass_msg = "A length of 30 in ipv6 should be an equiv of 4 /32s, rs: %s" % (str(rs1[0]))
+        self.assertTrue(rs1[0]['equiv'] == 4, ass_msg )
     ## end
 
     def testAddNumBeginAndEnd(self):
