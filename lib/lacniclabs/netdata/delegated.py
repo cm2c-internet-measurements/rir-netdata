@@ -51,7 +51,7 @@ class delegatedStats(object):
         r = self.s3l.importFile(self.dlg_fn_name, "|")
         # self.dbh = sql3load("")
         self.dbh = self.s3l
-        pass
+        return 
     # end
 
     # begin
@@ -99,7 +99,7 @@ class delegatedStats(object):
     #begin
     def _populate_columns(self, w_col_name, w_row):
         """
-        Calculates meta columns for the delegated file. 
+        Calculates meta columns for the delegated file.
         :param w_col_name:  column being calculated
         :param w_row: dictionary with current row values
         """
