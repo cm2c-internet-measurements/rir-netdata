@@ -1,0 +1,252 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Module documentation lacniclabs &mdash; LACNIC Labs OpenData Datasets 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="LACNIC Labs OpenData Datasets 0.1 documentation" href="index.html" />
+    <link rel="prev" title="Welcome to LACNIC Labs OpenData Datasets’s documentation!" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to LACNIC Labs OpenData Datasets’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">LACNIC Labs OpenData Datasets 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-lacniclabs">
+<span id="module-documentation-lacniclabs"></span><h1>Module documentation lacniclabs<a class="headerlink" href="#module-lacniclabs" title="Permalink to this headline">¶</a></h1>
+<span class="target" id="module-lacniclabs.netdata"></span><div class="section" id="module-lacniclabs.netdata.delegated">
+<span id="processing-the-rirs-delegated-stats-files"></span><h2>Processing the RIRs &#8216;delegated-stats&#8217; files<a class="headerlink" href="#module-lacniclabs.netdata.delegated" title="Permalink to this headline">¶</a></h2>
+<p>delegated.py: Implements delegated API on top of csv import
+(c) <a class="reference external" href="mailto:carlos&#37;&#52;&#48;lacnic&#46;net">carlos<span>&#64;</span>lacnic<span>&#46;</span>net</a> 20151201</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body">Carlos Martinez, <a class="reference external" href="mailto:carlos&#37;&#52;&#48;lacnic&#46;net">carlos<span>&#64;</span>lacnic<span>&#46;</span>net</a></td>
+</tr>
+<tr class="field-even field"><th class="field-name">date:</th><td class="field-body">20151201</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="lacniclabs.netdata.delegated.delegatedStats">
+<em class="property">class </em><code class="descclassname">lacniclabs.netdata.delegated.</code><code class="descname">delegatedStats</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Imports delegated stats file from the RIRs.</p>
+<dl class="docutils">
+<dt>Class attributes:</dt>
+<dd>s3l / dbh : handle to sql3load instance.</dd>
+</dl>
+<dl class="method">
+<dt id="lacniclabs.netdata.delegated.delegatedStats._add_equiv_column">
+<code class="descname">_add_equiv_column</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats._add_equiv_column"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats._add_equiv_column" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lacniclabs.netdata.delegated.delegatedStats._add_numeric_columns">
+<code class="descname">_add_numeric_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats._add_numeric_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats._add_numeric_columns" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lacniclabs.netdata.delegated.delegatedStats._add_prefix_column">
+<code class="descname">_add_prefix_column</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats._add_prefix_column"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats._add_prefix_column" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lacniclabs.netdata.delegated.delegatedStats._download_stats_file">
+<code class="descname">_download_stats_file</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats._download_stats_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats._download_stats_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downloads stats file for a given rir and date.
+Args &#8216;rir&#8217; and &#8216;date&#8217; (date can be &#8216;latest&#8217;)
+Load delegated-stats file and current RIR for given date (YYYYMMDD|latest)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>rir=</strong> &#8211; RIR name</li>
+<li><strong>date=</strong> &#8211; Date as in YYYYMMDD or &#8216;latest&#8217;</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lacniclabs.netdata.delegated.delegatedStats._populate_columns">
+<code class="descname">_populate_columns</code><span class="sig-paren">(</span><em>w_col_name</em>, <em>w_row</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats._populate_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats._populate_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates meta columns for the delegated file.
+:param w_col_name:  column being calculated
+:param w_row: dictionary with current row values</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-lacniclabs.netdata.riswhois">
+<span id="importing-ripe-ncc-s-riswhois-dumps"></span><h2>Importing RIPE NCC&#8217;s RISWHOIS Dumps<a class="headerlink" href="#module-lacniclabs.netdata.riswhois" title="Permalink to this headline">¶</a></h2>
+<p>rishois.py : Imports RIS WHOIS Dumps for both IPv4 and IPv6 into an SQL Lite database</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">author:</th><td class="field-body"><a class="reference external" href="mailto:carlos&#37;&#52;&#48;lacnic&#46;net">carlos<span>&#64;</span>lacnic<span>&#46;</span>net</a></td>
+</tr>
+<tr class="field-even field"><th class="field-name">date:</th><td class="field-body">20151221</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="lacniclabs.netdata.riswhois.risWhois">
+<em class="property">class </em><code class="descclassname">lacniclabs.netdata.riswhois.</code><code class="descname">risWhois</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/riswhois.html#risWhois"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.riswhois.risWhois" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class imports RIPE-NCC&#8217;s daily RIS Whois text dumps, enrichs them with additional metadata and provides an SQL
+interface to them.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Author:</th><td class="field-body">Carlos M. Martinez, <a class="reference external" href="mailto:carlos&#37;&#52;&#48;lacnic&#46;net">carlos<span>&#64;</span>lacnic<span>&#46;</span>net</a></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="lacniclabs.netdata.riswhois.risWhois._add_columns">
+<code class="descname">_add_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/riswhois.html#risWhois._add_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.riswhois.risWhois._add_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add meta columns to the riswhois database.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lacniclabs.netdata.riswhois.risWhois._download_dump_files">
+<code class="descname">_download_dump_files</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/riswhois.html#risWhois._download_dump_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.riswhois.risWhois._download_dump_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Downloads RIPE NCCs dump files, both for ipv4 and ipv6</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lacniclabs.netdata.riswhois.risWhois._populate_columns">
+<code class="descname">_populate_columns</code><span class="sig-paren">(</span><em>w_col_name</em>, <em>w_row</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/riswhois.html#risWhois._populate_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.riswhois.risWhois._populate_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates meta columns for the delegated file.
+:param w_col_name:  column being calculated
+:param w_row: dictionary with current row values</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lacniclabs.netdata.riswhois.risWhois.addEntries">
+<code class="descname">addEntries</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/riswhois.html#risWhois.addEntries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.riswhois.risWhois.addEntries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add additional entries to the current file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lacniclabs.netdata.riswhois.risWhois.q">
+<code class="descname">q</code><span class="sig-paren">(</span><em>w_query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/riswhois.html#risWhois.q"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.riswhois.risWhois.q" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shorthand for sql3load rawquery, so you can write shorter statements.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lacniclabs.netdata.riswhois.risWhois.qs">
+<code class="descname">qs</code><span class="sig-paren">(</span><em>w_query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/riswhois.html#risWhois.qs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.riswhois.risWhois.qs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Queries db expecting a single value, returns a single value.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Module documentation lacniclabs</a><ul>
+<li><a class="reference internal" href="#module-lacniclabs.netdata.delegated">Processing the RIRs &#8216;delegated-stats&#8217; files</a></li>
+<li><a class="reference internal" href="#module-lacniclabs.netdata.riswhois">Importing RIPE NCC&#8217;s RISWHOIS Dumps</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to LACNIC Labs OpenData Datasets&#8217;s documentation!</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/lacniclabs.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to LACNIC Labs OpenData Datasets’s documentation!"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">LACNIC Labs OpenData Datasets 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2015, carlos@lacnic.net.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.3.
+    </div>
+  </body>
+</html>
