@@ -46,12 +46,12 @@ class delegatedStats(object):
                              ('block', 'text'), ('length', 'integer'), ('date', 'integer'),
                              ('status', 'text'), ('orgid', 'integer')
                             ]
-        self.s3l = sql3load(self.s3_template, get_tmp_fn(".db"), "numres" )
+        self.s3l = sql3load(self.s3_template, get_tmp_fn(".db"), "|", "numres" )
         # print self.dlg_fn_name
-        r = self.s3l.importFile(self.dlg_fn_name, "|")
+        r = self.s3l.importFile(self.dlg_fn_name)
         # self.dbh = sql3load("")
         self.dbh = self.s3l
-        return 
+        return
     # end
 
     # begin
