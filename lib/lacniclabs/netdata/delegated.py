@@ -34,6 +34,7 @@ class delegatedStats(object):
         self.drir  = kwargs.get('rir','lacnic')
         self.ddate = kwargs.get('date', 'latest')
         self.local_file = kwargs.get('local_file', None)
+        self.db_filename = kwargs.get('db_filename', get_tmp_fn(".db") )
 
         # get archivo delegated
         if self.local_file == None:
@@ -46,13 +47,56 @@ class delegatedStats(object):
                              ('block', 'text'), ('length', 'integer'), ('date', 'integer'),
                              ('status', 'text'), ('orgid', 'integer')
                             ]
-        self.s3l = sql3load(self.s3_template, get_tmp_fn(".db"), "|", "numres" )
-        # print self.dlg_fn_name
+        self.s3l = sql3load(self.s3_template, self.db_filename , "|", "numres" )
         r = self.s3l.importFile(self.dlg_fn_name)
-        # self.dbh = sql3load("")
         self.dbh = self.s3l
+
+        # Add Meta columns
+        self._add_columns()
         return
     # end
+
+    # begin
+    def _add_columns(self):
+        """
+        Add meta columns and calculate their corresponding values.
+        """
+        r1 = self.dbh.addMetaColumn("istart INTEGER")
+        r2 = self.dbh.addMetaColumn("iend INTEGER")
+        #
+        mif = lambda x: self._populate_columns("istart", x)
+        p = self.dbh.calculateMetaColumn("istart", mif)
+        #
+        mif = lambda x: self._populate_columns("iend", x)
+        p = self.dbh.calculateMetaColumn("iend", mif)
+        #
+        r3 = self.dbh.addMetaColumn("prefix VARCHAR(80)")
+        mif = lambda x: self._populate_columns("prefix", x)
+        p = self.dbh.calculateMetaColumn("prefix", mif)
+        #
+        r4 = self.dbh.addMetaColumn("equiv INTEGER")
+        mif = lambda x: self._populate_columns("equiv", x)
+        p = self.dbh.calculateMetaColumn("equiv", mif)
+        return r1 and r2 and r3 and r4
+    # end
+
+    #begin qs
+    def qs(self, w_query):
+        '''
+        Queries db expecting a single value, returns a single value.
+        '''
+        rs = self.dbh._rawQuery(w_query)
+        k = rs[0].keys()
+        return rs[0][k[0]]
+    #end qs
+
+    #begin q
+    def q(self, w_query):
+        '''
+        Shorthand for sql3load rawquery, so you can write shorter statements.
+        '''
+        return self.dbh._rawQuery(w_query)
+    #end q    
 
     # begin
     def _download_stats_file(self, **kwargs):
@@ -76,27 +120,8 @@ class delegatedStats(object):
     # end
 
     # begin
-    def _add_numeric_columns(self):
-        r1 = self.dbh.addMetaColumn("istart INTEGER")
-        r2 = self.dbh.addMetaColumn("iend INTEGER")
-        return r1 and r2
-    #end
-
-    # begin
-    def _add_prefix_column(self):
-        r = self.dbh.addMetaColumn("prefix VARCHAR(80)")
-        mif = lambda x: self._populate_columns("prefix", x)
-        p = self.dbh.calculateMetaColumn("prefix", mif)
-        return r
-    # end
-
-
-    # begin
     def _add_equiv_column(self):
-        r = self.dbh.addMetaColumn("equiv INTEGER")
-        mif = lambda x: self._populate_columns("equiv", x)
-        p = self.dbh.calculateMetaColumn("equiv", mif)
-        return r
+        pass
     # end
 
     #begin

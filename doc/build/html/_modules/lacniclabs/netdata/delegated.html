@@ -83,6 +83,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">drir</span>  <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;rir&#39;</span><span class="p">,</span><span class="s">&#39;lacnic&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ddate</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;date&#39;</span><span class="p">,</span> <span class="s">&#39;latest&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">local_file</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;local_file&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db_filename</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;db_filename&#39;</span><span class="p">,</span> <span class="n">get_tmp_fn</span><span class="p">(</span><span class="s">&quot;.db&quot;</span><span class="p">)</span> <span class="p">)</span>
 
         <span class="c"># get archivo delegated</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_file</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
@@ -95,13 +96,56 @@
                              <span class="p">(</span><span class="s">&#39;block&#39;</span><span class="p">,</span> <span class="s">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;length&#39;</span><span class="p">,</span> <span class="s">&#39;integer&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;date&#39;</span><span class="p">,</span> <span class="s">&#39;integer&#39;</span><span class="p">),</span>
                              <span class="p">(</span><span class="s">&#39;status&#39;</span><span class="p">,</span> <span class="s">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;orgid&#39;</span><span class="p">,</span> <span class="s">&#39;integer&#39;</span><span class="p">)</span>
                             <span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">s3l</span> <span class="o">=</span> <span class="n">sql3load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s3_template</span><span class="p">,</span> <span class="n">get_tmp_fn</span><span class="p">(</span><span class="s">&quot;.db&quot;</span><span class="p">),</span> <span class="s">&quot;|&quot;</span><span class="p">,</span> <span class="s">&quot;numres&quot;</span> <span class="p">)</span>
-        <span class="c"># print self.dlg_fn_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s3l</span> <span class="o">=</span> <span class="n">sql3load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s3_template</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_filename</span> <span class="p">,</span> <span class="s">&quot;|&quot;</span><span class="p">,</span> <span class="s">&quot;numres&quot;</span> <span class="p">)</span>
         <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s3l</span><span class="o">.</span><span class="n">importFile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dlg_fn_name</span><span class="p">)</span>
-        <span class="c"># self.dbh = sql3load(&quot;&quot;)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s3l</span>
+
+        <span class="c"># Add Meta columns</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_columns</span><span class="p">()</span>
         <span class="k">return</span>
     <span class="c"># end</span>
+
+    <span class="c"># begin</span>
+<div class="viewcode-block" id="delegatedStats._add_columns"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats._add_columns">[docs]</a>    <span class="k">def</span> <span class="nf">_add_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add meta columns and calculate their corresponding values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;istart INTEGER&quot;</span><span class="p">)</span>
+        <span class="n">r2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;iend INTEGER&quot;</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;istart&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;istart&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;iend&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;iend&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="n">r3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;prefix VARCHAR(80)&quot;</span><span class="p">)</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;prefix&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;prefix&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="n">r4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;equiv INTEGER&quot;</span><span class="p">)</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;equiv&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;equiv&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">r1</span> <span class="ow">and</span> <span class="n">r2</span> <span class="ow">and</span> <span class="n">r3</span> <span class="ow">and</span> <span class="n">r4</span></div>
+    <span class="c"># end</span>
+
+    <span class="c">#begin qs</span>
+<div class="viewcode-block" id="delegatedStats.qs"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats.qs">[docs]</a>    <span class="k">def</span> <span class="nf">qs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_query</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Queries db expecting a single value, returns a single value.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">rs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">_rawQuery</span><span class="p">(</span><span class="n">w_query</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span></div>
+    <span class="c">#end qs</span>
+
+    <span class="c">#begin q</span>
+<div class="viewcode-block" id="delegatedStats.q"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats.q">[docs]</a>    <span class="k">def</span> <span class="nf">q</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_query</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Shorthand for sql3load rawquery, so you can write shorter statements.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">_rawQuery</span><span class="p">(</span><span class="n">w_query</span><span class="p">)</span></div>
+    <span class="c">#end q    </span>
 
     <span class="c"># begin</span>
 <div class="viewcode-block" id="delegatedStats._download_stats_file"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats._download_stats_file">[docs]</a>    <span class="k">def</span> <span class="nf">_download_stats_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -125,27 +169,8 @@
     <span class="c"># end</span>
 
     <span class="c"># begin</span>
-<div class="viewcode-block" id="delegatedStats._add_numeric_columns"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats._add_numeric_columns">[docs]</a>    <span class="k">def</span> <span class="nf">_add_numeric_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">r1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;istart INTEGER&quot;</span><span class="p">)</span>
-        <span class="n">r2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;iend INTEGER&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">r1</span> <span class="ow">and</span> <span class="n">r2</span></div>
-    <span class="c">#end</span>
-
-    <span class="c"># begin</span>
-<div class="viewcode-block" id="delegatedStats._add_prefix_column"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats._add_prefix_column">[docs]</a>    <span class="k">def</span> <span class="nf">_add_prefix_column</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;prefix VARCHAR(80)&quot;</span><span class="p">)</span>
-        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;prefix&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;prefix&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">r</span></div>
-    <span class="c"># end</span>
-
-
-    <span class="c"># begin</span>
 <div class="viewcode-block" id="delegatedStats._add_equiv_column"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats._add_equiv_column">[docs]</a>    <span class="k">def</span> <span class="nf">_add_equiv_column</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;equiv INTEGER&quot;</span><span class="p">)</span>
-        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;equiv&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;equiv&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">r</span></div>
+        <span class="k">pass</span></div>
     <span class="c"># end</span>
 
     <span class="c">#begin</span>

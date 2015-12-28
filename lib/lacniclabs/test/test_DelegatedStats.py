@@ -38,23 +38,21 @@ class Test(unittest.TestCase):
     ## end
 
     def testQueryDelegated1(self):
-        rs1 = self.__class__.dsreader.dbh._rawQuery("SELECT count(*) as cnt FROM numres")
-        # rs1 = self.dsreader.dbh._rawQuery(".schema")
-        # print str(rs1)
-        rowCount = rs1[0]['cnt']
+        rs1 = self.__class__.dsreader.qs("SELECT count(*) as cnt FROM numres")
+        rowCount = int(rs1)
         self.assertTrue(rowCount>1000)
     ## end
 
     def testQueryDelegated2(self):
-        rs1 = self.__class__.dsreader.dbh._rawQuery("SELECT count(*) as cnt FROM numres WHERE status='allocated'")
+        rs1 = self.__class__.dsreader.qs("SELECT count(*) as cnt FROM numres WHERE status='allocated'")
         # rs1 = self.dsreader.dbh._rawQuery(".schema")
         # print "allocated %s" % (str(rs1))
-        rowCount = rs1[0]['cnt']
+        rowCount = int(rs1)
         self.assertTrue(rowCount>1000)
     ## end
 
     def testQueryDelegated3(self):
-        rs1 = self.__class__.dsreader.dbh._rawQuery("SELECT count(*) as cnt FROM numres WHERE status='available'")
+        rs1 = self.__class__.dsreader.qs("SELECT count(*) as cnt FROM numres WHERE status='available'")
         # rs1 = self.dsreader.dbh._rawQuery(".schema")
         # print "available %s" % (str(rs1))
         rowCount = rs1[0]['cnt']
@@ -62,37 +60,34 @@ class Test(unittest.TestCase):
     ## end
 
     def testQueryDelegated3(self):
-        rs1 = self.__class__.dsreader.dbh._rawQuery("SELECT count(*) as cnt FROM numres WHERE status='reserved'")
+        rs1 = self.__class__.dsreader.qs("SELECT count(*) as cnt FROM numres WHERE status='reserved'")
         # rs1 = self.dsreader.dbh._rawQuery(".schema")
         # print "reserved %s" % (str(rs1))
-        rowCount = rs1[0]['cnt']
+        rowCount = int(rs1)
         self.assertTrue(rowCount>5)
     ## end
 
     def testAddPrefixColumn(self):
-        rs = self.__class__.dsreader._add_prefix_column()
-        self.assertTrue(rs, "Error creating prefix column")
-        rs1 = self.__class__.dsreader.dbh._rawQuery("SELECT * FROM numres where type='ipv4' AND length=1024")
+        rs1 = self.__class__.dsreader.q("SELECT * FROM numres where type='ipv4' AND length=1024")
         ass_msg = "A length of 1024 should be a prefix ending with /22, rs: %s" % (str(rs1[0]))
         self.assertTrue(rs1[0]['prefix'].endswith("/22"), ass_msg )
     ## end
 
     def testAddEquivColumn(self):
-        rs = self.__class__.dsreader._add_equiv_column()
-        self.assertTrue(rs, "Error creating equiv column")
         #
-        rs1 = self.__class__.dsreader.dbh._rawQuery("SELECT * FROM numres where type='ipv4' AND length=1024")
+        rs1 = self.__class__.dsreader.q("SELECT * FROM numres where type='ipv4' AND length=1024")
         ass_msg = "A length of 1024 should be an equiv of 4 /24s, rs: %s" % (str(rs1[0]))
         self.assertTrue(rs1[0]['equiv'] == 4, ass_msg )
         #
-        rs1 = self.__class__.dsreader.dbh._rawQuery("SELECT * FROM numres where type='ipv6' AND length=30")
+        rs1 = self.__class__.dsreader.q("SELECT * FROM numres where type='ipv6' AND length=30")
         ass_msg = "A length of 30 in ipv6 should be an equiv of 4 /32s, rs: %s" % (str(rs1[0]))
         self.assertTrue(rs1[0]['equiv'] == 4, ass_msg )
     ## end
 
     def testAddNumBeginAndEnd(self):
-        rs = self.__class__.dsreader._add_numeric_columns()
-        self.assertTrue(rs, "Error creating numeric columns")
+        #
+        rs1 = self.__class__.dsreader.qs("SELECT count(*) as cnt FROM numres WHERE istart-iend<=256")
+        self.assertTrue(int(rs1)>10, "Could not find at least 10 rows where istart-iend<=256, found %s" % int(rs1))
     ## end
 
 ## end class Test

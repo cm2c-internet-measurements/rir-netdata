@@ -73,18 +73,14 @@
 <dd>s3l / dbh : handle to sql3load instance.</dd>
 </dl>
 <dl class="method">
+<dt id="lacniclabs.netdata.delegated.delegatedStats._add_columns">
+<code class="descname">_add_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats._add_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats._add_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add meta columns and calculate their corresponding values.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lacniclabs.netdata.delegated.delegatedStats._add_equiv_column">
 <code class="descname">_add_equiv_column</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats._add_equiv_column"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats._add_equiv_column" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lacniclabs.netdata.delegated.delegatedStats._add_numeric_columns">
-<code class="descname">_add_numeric_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats._add_numeric_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats._add_numeric_columns" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lacniclabs.netdata.delegated.delegatedStats._add_prefix_column">
-<code class="descname">_add_prefix_column</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats._add_prefix_column"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats._add_prefix_column" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -113,6 +109,18 @@ Load delegated-stats file and current RIR for given date (YYYYMMDD|latest)</p>
 <dd><p>Calculates meta columns for the delegated file.
 :param w_col_name:  column being calculated
 :param w_row: dictionary with current row values</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lacniclabs.netdata.delegated.delegatedStats.q">
+<code class="descname">q</code><span class="sig-paren">(</span><em>w_query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats.q"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats.q" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shorthand for sql3load rawquery, so you can write shorter statements.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lacniclabs.netdata.delegated.delegatedStats.qs">
+<code class="descname">qs</code><span class="sig-paren">(</span><em>w_query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lacniclabs/netdata/delegated.html#delegatedStats.qs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lacniclabs.netdata.delegated.delegatedStats.qs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Queries db expecting a single value, returns a single value.</p>
 </dd></dl>
 
 </dd></dl>
