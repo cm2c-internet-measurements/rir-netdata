@@ -6,20 +6,20 @@ Module documentation lacniclabs
 	:undoc-members:
 
 
-.. automodule:: lacniclabs.delegated
+.. automodule:: lacniclabs.netdata
 	:members:
 	:undoc-members:
 
 
 Processing the RIRs 'delegated-stats' files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: lacniclabs.delegated.delegated.delegatedStats
+.. autoclass:: lacniclabs.netdata.delegated.delegatedStats
 	:members:
 	:undoc-members:
 
 
-Modeling IPv4 Exhaustion
-^^^^^^^^^^^^^^^^^^^^^^^^
-.. automodule:: lacniclabs.ipv4models
+Importin RIPE NCC's RISWHOS Dumps
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: lacniclabs.netdata.riswhois
 		:members:
 		:undoc-members:
