@@ -1,7 +1,12 @@
-'''
+"""
 delegated.py: Implements delegated API on top of csv import
 (c) carlos@lacnic.net 20151201
-'''
+
+:author: Carlos Martinez, carlos@lacnic.net
+:date: 20151201
+
+"""
+
 #########################################################################################
 
 from cm2c.csvimport.sql3load import sql3load
@@ -14,17 +19,12 @@ import ipaddr
 
 ## begin
 class delegatedStats(object):
-    '''
+    """
     Imports delegated stats file from the RIRs.
 
     Class attributes:
         s3l / dbh : handle to sql3load instance.
-    '''
-
-    #dbh = None
-    #'''
-    #dbh: sql3load database handle.
-    #'''
+    """
 
     # begin
     def __init__(self, **kwargs):
@@ -60,6 +60,9 @@ class delegatedStats(object):
         Downloads stats file for a given rir and date.
         Args 'rir' and 'date' (date can be 'latest')
         Load delegated-stats file and current RIR for given date (YYYYMMDD|latest)
+
+        :param rir=: RIR name
+        :param date=: Date as in YYYYMMDD or 'latest'
         """
         dp = dprint()
         # get delegated

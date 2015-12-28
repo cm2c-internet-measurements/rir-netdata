@@ -13,13 +13,20 @@ Module documentation lacniclabs
 
 Processing the RIRs 'delegated-stats' files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: lacniclabs.netdata.delegated
+
+
 .. autoclass:: lacniclabs.netdata.delegated.delegatedStats
 	:members:
 	:undoc-members:
+	:private-members:
 
 
-Importin RIPE NCC's RISWHOS Dumps
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Importing RIPE NCC's RISWHOIS Dumps
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: lacniclabs.netdata.riswhois
-		:members:
-		:undoc-members:
+
+.. autoclass:: lacniclabs.netdata.riswhois.risWhois
+			:members:
+			:undoc-members:
+			:private-members:

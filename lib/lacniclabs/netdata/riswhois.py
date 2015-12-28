@@ -1,5 +1,5 @@
 """
-rishois.py : Importos RIS WHOIS Dumps for both IPv4 and IPv6 into an SQL Lite database
+rishois.py : Imports RIS WHOIS Dumps for both IPv4 and IPv6 into an SQL Lite database
 
 :author: carlos@lacnic.net
 :date: 20151221
