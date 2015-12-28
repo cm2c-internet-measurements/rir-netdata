@@ -1,5 +1,6 @@
 # Mac
 .DS_Store
+doc/.DS_Store
 tmp/*.db
 tmp/*.txt
 tmp/*.html
