@@ -12,6 +12,7 @@ Contents:
    :maxdepth: 2
 
    lacniclabs
+   cm2c
 
 
 Indices and tables
