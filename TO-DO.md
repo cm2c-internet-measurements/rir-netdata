@@ -2,7 +2,7 @@
 
 ## Open already existing db dumps non-destructively
 
-Use already existing dbs without dropping current data.
+Use already existing dbs without dropping current data. Add a flag
 
 ## Add support for RIPE NCC RPKI Validator ROA export
 

@@ -27,6 +27,14 @@ class risWhois(object):
 
     #begin init
     def __init__(self, **kwargs):
+        """
+        Default constructor
+        :param kwargs: name parameters, see below
+
+        :param ipversion: ipv4 or ipv6
+        :param local_file: pointer to a file in the local filesystem, instead of trying to download the ris whois files
+        :param db_filename: pointer to the local database file.
+        """
         # set ip version
         self.type = kwargs.get('ipversion', 'ipv4')
         # import a local file instead of download
