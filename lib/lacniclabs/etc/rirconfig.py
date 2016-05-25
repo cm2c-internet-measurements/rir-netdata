@@ -35,8 +35,8 @@ from cm2c.commons.gen.utils import json_load
 
 # rirs and their files
 rir_config_data = { 'lacnic':
-                        {'dlg1': ["ftp://ftp.lacnic.net/pub/stats/lacnic/delegated-lacnic-%s", "data/delegated-lacnic-latest"],
-                         'dlge': ["ftp://ftp.lacnic.net/pub/stats/lacnic/delegated-lacnic-extended-%s", "data/delegated-lacnic-extended-latest"],
+                        {'dlg1': ["http://ftp.lacnic.net/pub/stats/lacnic/delegated-lacnic-%s", "data/delegated-lacnic-latest"],
+                         'dlge': ["http://ftp.lacnic.net/pub/stats/lacnic/delegated-lacnic-extended-%s", "data/delegated-lacnic-extended-latest"],
                          'roaexport': ['http://ripeval.labs.lacnic.net/rpki/batch-validation/%s/lacnic.tal-roa-prefixes.csv'],
                          'countrydata': json_load('etc/lacnic_region.json')
                         },

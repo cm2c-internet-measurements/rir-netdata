@@ -16,6 +16,8 @@ from cm2c.commons.debug.dprint import dprint
 from lacniclabs.etc import rirconfig
 import math
 import ipaddr
+import sys
+import os
 
 ## begin
 class delegatedStats(object):
@@ -96,7 +98,7 @@ class delegatedStats(object):
         Shorthand for sql3load rawquery, so you can write shorter statements.
         '''
         return self.dbh._rawQuery(w_query)
-    #end q    
+    #end q
 
     # begin
     def _download_stats_file(self, **kwargs):
@@ -112,9 +114,17 @@ class delegatedStats(object):
         # get delegated
         ddate = kwargs.get('date', 'latest')
         drir  = kwargs.get('rir', 'lacnic')
-        dp.log("Downloading stat file for RIR %s, date %s..." % (self.drir, self.ddate))
-        dlg_tmpfile = get_tmp_fn(filename="delegated-extended-%s-%s" % (drir, ddate) )
-        dlg_tmpfile_name = getfile(rirconfig.rir_config_data[self.drir]['dlge'][0] % (self.ddate), dlg_tmpfile,43200)
+        dp.log("Downloading stat file for RIR %s, date %s...\n" % (self.drir, self.ddate))
+        dlg_tmpfile = get_tmp_fn(filename="tmp_delegated-extended-%s-%s" % (drir, ddate) )
+        try:
+            dlg_f_url = rirconfig.rir_config_data[self.drir]['dlge'][0] % (self.ddate)
+            dlg_tmpfile_name = getfile( dlg_f_url, dlg_tmpfile, 5)
+        except:
+            print "Failed downloading stats file! url=%s" % (dlg_f_url)
+            raise
+        if not dlg_tmpfile_name:
+            dp.log(" FAILED! url: %s\n" % (dlg_f_url))
+            sys.exit(1)
         dp.log(" OK\n")
         return dlg_tmpfile_name
     # end
