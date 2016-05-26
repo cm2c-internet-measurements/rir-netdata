@@ -37,6 +37,7 @@ class delegatedStats(object):
         self.ddate = kwargs.get('date', 'latest')
         self.local_file = kwargs.get('local_file', None)
         self.db_filename = kwargs.get('db_filename', get_tmp_fn(".db") )
+        self.as_cache = kwargs.get('as_cache', False)
 
         # get archivo delegated
         if self.local_file == None:
@@ -49,7 +50,7 @@ class delegatedStats(object):
                              ('block', 'text'), ('length', 'integer'), ('date', 'integer'),
                              ('status', 'text'), ('orgid', 'integer')
                             ]
-        self.s3l = sql3load(self.s3_template, self.db_filename , "|", "numres" )
+        self.s3l = sql3load(self.s3_template, self.db_filename , "|", "numres", as_cache=self.as_cache, comments_mark="#")
         r = self.s3l.importFile(self.dlg_fn_name)
         self.dbh = self.s3l
 
@@ -118,7 +119,7 @@ class delegatedStats(object):
         dlg_tmpfile = get_tmp_fn(filename="tmp_delegated-extended-%s-%s" % (drir, ddate) )
         try:
             dlg_f_url = rirconfig.rir_config_data[self.drir]['dlge'][0] % (self.ddate)
-            dlg_tmpfile_name = getfile( dlg_f_url, dlg_tmpfile, 5)
+            dlg_tmpfile_name = getfile( dlg_f_url, dlg_tmpfile, 3600)
         except:
             print "Failed downloading stats file! url=%s" % (dlg_f_url)
             raise

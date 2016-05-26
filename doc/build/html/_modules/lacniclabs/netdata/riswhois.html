@@ -54,7 +54,7 @@
 <span class="sd">:date: 20151221</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="c1">#########################################################################################</span>
+<span class="c">#########################################################################################</span>
 
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">sys</span>
@@ -65,7 +65,7 @@
 <span class="kn">from</span> <span class="nn">cm2c.commons.debug.dprint</span> <span class="kn">import</span> <span class="n">dprint</span>
 <span class="kn">from</span> <span class="nn">lacniclabs.etc</span> <span class="kn">import</span> <span class="n">rirconfig</span>
 
-<span class="c1"># begin class</span>
+<span class="c"># begin class</span>
 <div class="viewcode-block" id="risWhois"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.riswhois.risWhois">[docs]</a><span class="k">class</span> <span class="nc">risWhois</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This class imports RIPE-NCC&#39;s daily RIS Whois text dumps, enrichs them with additional metadata and provides an SQL</span>
@@ -74,111 +74,119 @@
 <span class="sd">    :author: Carlos M. Martinez, carlos@lacnic.net</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1">#begin init</span>
+    <span class="c">#begin init</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="c1"># set ip version</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ipversion&#39;</span><span class="p">,</span> <span class="s1">&#39;ipv4&#39;</span><span class="p">)</span>
-        <span class="c1"># import a local file instead of download</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">local_file</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;local_file&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
-        <span class="c1"># database filename</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">db_filename</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;db_filename&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Default constructor</span>
+<span class="sd">        :param kwargs: name parameters, see below</span>
 
-        <span class="n">s3_template</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="s1">&#39;origin_as&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;viewed_by&#39;</span><span class="p">,</span> <span class="s1">&#39;integer&#39;</span><span class="p">)]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span> <span class="o">=</span> <span class="n">sql3load</span><span class="p">(</span><span class="n">s3_template</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_filename</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;riswhois&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_add_columns</span><span class="p">()</span> <span class="c1"># add meta columns</span>
+<span class="sd">        :param ipversion: ipv4 or ipv6</span>
+<span class="sd">        :param local_file: pointer to a file in the local filesystem, instead of trying to download the ris whois files</span>
+<span class="sd">        :param db_filename: pointer to the local database file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># set ip version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;ipversion&#39;</span><span class="p">,</span> <span class="s">&#39;ipv4&#39;</span><span class="p">)</span>
+        <span class="c"># import a local file instead of download</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_file</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;local_file&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="c"># database filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db_filename</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;db_filename&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+
+        <span class="n">s3_template</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="s">&#39;origin_as&#39;</span><span class="p">,</span> <span class="s">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;prefix&#39;</span><span class="p">,</span> <span class="s">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;viewed_by&#39;</span><span class="p">,</span> <span class="s">&#39;integer&#39;</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span> <span class="o">=</span> <span class="n">sql3load</span><span class="p">(</span><span class="n">s3_template</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_filename</span><span class="p">,</span> <span class="s">&quot;</span><span class="se">\t</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;riswhois&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_columns</span><span class="p">()</span> <span class="c"># add meta columns</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_file</span><span class="p">:</span>
-            <span class="c1"># download Dumps</span>
+            <span class="c"># download Dumps</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">local_file2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_download_dump_files</span><span class="p">()</span>
             <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">addEntries</span><span class="p">(</span><span class="n">local_file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_file2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">addEntries</span><span class="p">(</span><span class="n">local_file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_file2</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">addEntries</span><span class="p">(</span><span class="n">local_file</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_file</span><span class="p">)</span>
-        <span class="c1">#</span>
+        <span class="c">#</span>
         <span class="k">return</span>
-    <span class="c1"># end init</span>
+    <span class="c"># end init</span>
 
-    <span class="c1"># begin</span>
+    <span class="c"># begin</span>
 <div class="viewcode-block" id="risWhois._download_dump_files"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.riswhois.risWhois._download_dump_files">[docs]</a>    <span class="k">def</span> <span class="nf">_download_dump_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Downloads RIPE NCCs dump files, both for ipv4 and ipv6</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dp</span> <span class="o">=</span> <span class="n">dprint</span><span class="p">()</span>
-        <span class="c1"># get delegated</span>
-        <span class="c1">#ddate = kwargs.get(&#39;date&#39;, &#39;latest&#39;)</span>
-        <span class="c1">#drir  = kwargs.get(&#39;rir&#39;, &#39;lacnic&#39;)</span>
-        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Downloading dump file for ipv4...&quot;</span><span class="p">)</span>
-        <span class="n">dlg_tmpfile</span> <span class="o">=</span> <span class="n">get_tmp_fn</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;ris-whois-dump-ipv4.gz&quot;</span> <span class="p">)</span>
-        <span class="n">dlg_tmpfile_name4</span> <span class="o">=</span> <span class="n">getfile</span><span class="p">(</span><span class="n">rirconfig</span><span class="o">.</span><span class="n">rir_config_data</span><span class="p">[</span><span class="s1">&#39;ripencc&#39;</span><span class="p">][</span><span class="s1">&#39;ris_whois_v4&#39;</span><span class="p">]</span> <span class="p">,</span> <span class="n">dlg_tmpfile</span><span class="p">,</span> <span class="mi">86400</span><span class="p">)</span>
-        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot; OK</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Downloading dump file for ipv6...&quot;</span><span class="p">)</span>
-        <span class="n">dlg_tmpfile</span> <span class="o">=</span> <span class="n">get_tmp_fn</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;ris-whois-dump-ipv6.gz&quot;</span> <span class="p">)</span>
-        <span class="n">dlg_tmpfile_name6</span> <span class="o">=</span> <span class="n">getfile</span><span class="p">(</span><span class="n">rirconfig</span><span class="o">.</span><span class="n">rir_config_data</span><span class="p">[</span><span class="s1">&#39;ripencc&#39;</span><span class="p">][</span><span class="s1">&#39;ris_whois_v6&#39;</span><span class="p">]</span> <span class="p">,</span> <span class="n">dlg_tmpfile</span><span class="p">,</span> <span class="mi">86400</span><span class="p">)</span>
-        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot; OK</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">dlg_tmpfile_name4</span><span class="p">,</span> <span class="n">dlg_tmpfile_name6</span><span class="p">]</span></div>
-    <span class="c1"># end</span>
+        <span class="c"># get delegated</span>
+        <span class="c">#ddate = kwargs.get(&#39;date&#39;, &#39;latest&#39;)</span>
+        <span class="c">#drir  = kwargs.get(&#39;rir&#39;, &#39;lacnic&#39;)</span>
+        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s">&quot;Downloading dump file for ipv4...&quot;</span><span class="p">)</span>
+        <span class="n">dlg_tmpfile</span> <span class="o">=</span> <span class="n">get_tmp_fn</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;ris-whois-dump-ipv4.gz&quot;</span> <span class="p">)</span>
+        <span class="n">dlg_tmpfile_name4</span> <span class="o">=</span> <span class="n">getfile</span><span class="p">(</span><span class="n">rirconfig</span><span class="o">.</span><span class="n">rir_config_data</span><span class="p">[</span><span class="s">&#39;ripencc&#39;</span><span class="p">][</span><span class="s">&#39;ris_whois_v4&#39;</span><span class="p">]</span> <span class="p">,</span> <span class="n">dlg_tmpfile</span><span class="p">,</span> <span class="mi">86400</span><span class="p">)</span>
+        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s">&quot; OK</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s">&quot;Downloading dump file for ipv6...&quot;</span><span class="p">)</span>
+        <span class="n">dlg_tmpfile</span> <span class="o">=</span> <span class="n">get_tmp_fn</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;ris-whois-dump-ipv6.gz&quot;</span> <span class="p">)</span>
+        <span class="n">dlg_tmpfile_name6</span> <span class="o">=</span> <span class="n">getfile</span><span class="p">(</span><span class="n">rirconfig</span><span class="o">.</span><span class="n">rir_config_data</span><span class="p">[</span><span class="s">&#39;ripencc&#39;</span><span class="p">][</span><span class="s">&#39;ris_whois_v6&#39;</span><span class="p">]</span> <span class="p">,</span> <span class="n">dlg_tmpfile</span><span class="p">,</span> <span class="mi">86400</span><span class="p">)</span>
+        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s">&quot; OK</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">dlg_tmpfile_name4</span><span class="p">,</span> <span class="n">dlg_tmpfile_name6</span><span class="p">]</span>
+    <span class="c"># end</span>
 
-    <span class="c1"># begin addEntries</span>
+    <span class="c"># begin addEntries</span></div>
 <div class="viewcode-block" id="risWhois.addEntries"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.riswhois.risWhois.addEntries">[docs]</a>    <span class="k">def</span> <span class="nf">addEntries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Add additional entries to the current file</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="n">fn</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;local_file&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
-        <span class="c1">#</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;local_file&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="c">#</span>
         <span class="k">def</span> <span class="nf">p</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;[</span><span class="si">%s</span><span class="s2">]</span><span class="se">\r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">getKey</span><span class="p">(</span><span class="s1">&#39;inserted-rows&#39;</span><span class="p">))),</span>
-        <span class="c1">#</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;[</span><span class="si">%s</span><span class="s">]</span><span class="se">\r</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">getKey</span><span class="p">(</span><span class="s">&#39;inserted-rows&#39;</span><span class="p">))),</span>
+        <span class="c">#</span>
         <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">importFile</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="c1">#</span>
-        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s2">&quot;istart&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s2">&quot;istart&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s2">&quot;iend&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s2">&quot;iend&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="c1">#</span>
-        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s2">&quot;pfxlen&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s2">&quot;pfxlen&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="k">return</span> <span class="bp">True</span></div>
-    <span class="c1"># end addEntries</span>
+        <span class="c">#</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;type&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;type&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="c">#</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;istart&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;istart&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;iend&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;iend&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="c">#</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;pfxlen&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;pfxlen&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="k">return</span> <span class="bp">True</span>
+    <span class="c"># end addEntries</span>
 
-    <span class="c1">#begin qs</span>
+    <span class="c">#begin qs</span></div>
 <div class="viewcode-block" id="risWhois.qs"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.riswhois.risWhois.qs">[docs]</a>    <span class="k">def</span> <span class="nf">qs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_query</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Queries db expecting a single value, returns a single value.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="n">rs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">_rawQuery</span><span class="p">(</span><span class="n">w_query</span><span class="p">)</span>
         <span class="n">k</span> <span class="o">=</span> <span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span></div>
-    <span class="c1">#end qs</span>
+        <span class="k">return</span> <span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="c">#end qs</span>
 
-    <span class="c1">#begin q</span>
+    <span class="c">#begin q</span></div>
 <div class="viewcode-block" id="risWhois.q"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.riswhois.risWhois.q">[docs]</a>    <span class="k">def</span> <span class="nf">q</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_query</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Shorthand for sql3load rawquery, so you can write shorter statements.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">_rawQuery</span><span class="p">(</span><span class="n">w_query</span><span class="p">)</span></div>
-    <span class="c1">#end q</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">_rawQuery</span><span class="p">(</span><span class="n">w_query</span><span class="p">)</span>
+    <span class="c">#end q</span>
 
-    <span class="c1"># begin</span>
+    <span class="c"># begin</span></div>
 <div class="viewcode-block" id="risWhois._add_columns"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.riswhois.risWhois._add_columns">[docs]</a>    <span class="k">def</span> <span class="nf">_add_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Add meta columns to the riswhois database.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">r1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s2">&quot;istart UNSIGNED BIG INT&quot;</span><span class="p">)</span>
-        <span class="n">r2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s2">&quot;iend UNSIGNED BIG INT&quot;</span><span class="p">)</span>
-        <span class="n">r3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s2">&quot;type VARCHAR(5)&quot;</span><span class="p">)</span>
-        <span class="n">r4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s2">&quot;pfxlen INTEGER&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">r1</span> <span class="ow">and</span> <span class="n">r2</span> <span class="ow">and</span> <span class="n">r3</span> <span class="ow">and</span> <span class="n">r4</span></div>
-    <span class="c1">#end</span>
+        <span class="n">r1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;istart UNSIGNED BIG INT&quot;</span><span class="p">)</span>
+        <span class="n">r2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;iend UNSIGNED BIG INT&quot;</span><span class="p">)</span>
+        <span class="n">r3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;type VARCHAR(5)&quot;</span><span class="p">)</span>
+        <span class="n">r4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;pfxlen INTEGER&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">r1</span> <span class="ow">and</span> <span class="n">r2</span> <span class="ow">and</span> <span class="n">r3</span> <span class="ow">and</span> <span class="n">r4</span>
+    <span class="c">#end</span>
 
-    <span class="c1">#begin</span>
+    <span class="c">#begin</span></div>
 <div class="viewcode-block" id="risWhois._populate_columns"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.riswhois.risWhois._populate_columns">[docs]</a>    <span class="k">def</span> <span class="nf">_populate_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_col_name</span><span class="p">,</span> <span class="n">w_row</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculates meta columns for the delegated file.</span>
@@ -186,48 +194,48 @@
 <span class="sd">        :param w_row: dictionary with current row values</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">record</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">w_row</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="k">if</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-                <span class="n">loc_type</span> <span class="o">=</span> <span class="s1">&#39;ipv6&#39;</span>
+        <span class="c">#</span>
+        <span class="k">if</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;:&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">loc_type</span> <span class="o">=</span> <span class="s">&#39;ipv6&#39;</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">loc_type</span> <span class="o">=</span> <span class="s1">&#39;ipv4&#39;</span>
+                <span class="n">loc_type</span> <span class="o">=</span> <span class="s">&#39;ipv4&#39;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">loc_type</span> <span class="o">=</span> <span class="s1">&#39;na&#39;</span>
+            <span class="n">loc_type</span> <span class="o">=</span> <span class="s">&#39;na&#39;</span>
 
-        <span class="n">record</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loc_type</span>
-        <span class="n">record</span><span class="p">[</span><span class="s1">&#39;pfxlen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">record</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loc_type</span>
+        <span class="n">record</span><span class="p">[</span><span class="s">&#39;pfxlen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
-        <span class="k">if</span> <span class="n">record</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;ipv4&#39;</span> <span class="ow">and</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]:</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span>
-            <span class="c1">#print &quot;prefix %s&quot; % (w_row[&#39;prefix&#39;])</span>
-            <span class="n">pfx</span> <span class="o">=</span> <span class="n">ipaddr</span><span class="o">.</span><span class="n">IPv4Network</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">])</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">network</span><span class="p">)</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;iend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">)</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;pfxlen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pfx</span><span class="o">.</span><span class="n">prefixlen</span>
-            <span class="c1"># record[&#39;equiv&#39;] = (record[&#39;iend&#39;]-record[&#39;istart&#39;])/256 + 1</span>
+        <span class="k">if</span> <span class="n">record</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;ipv4&#39;</span> <span class="ow">and</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]:</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]</span>
+            <span class="c">#print &quot;prefix %s&quot; % (w_row[&#39;prefix&#39;])</span>
+            <span class="n">pfx</span> <span class="o">=</span> <span class="n">ipaddr</span><span class="o">.</span><span class="n">IPv4Network</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">])</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">network</span><span class="p">)</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;iend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">)</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;pfxlen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pfx</span><span class="o">.</span><span class="n">prefixlen</span>
+            <span class="c"># record[&#39;equiv&#39;] = (record[&#39;iend&#39;]-record[&#39;istart&#39;])/256 + 1</span>
             <span class="k">return</span> <span class="n">record</span><span class="p">[</span><span class="n">w_col_name</span><span class="p">]</span>
-        <span class="k">elif</span> <span class="n">record</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;ipv6&#39;</span> <span class="ow">and</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]:</span>
-            <span class="k">if</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;2&quot;</span><span class="p">):</span>
+        <span class="k">elif</span> <span class="n">record</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;ipv6&#39;</span> <span class="ow">and</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&quot;2&quot;</span><span class="p">):</span>
                 <span class="n">pfx_norm_base</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">64</span><span class="p">)</span>
-                <span class="n">pfx</span> <span class="o">=</span> <span class="n">ipaddr</span><span class="o">.</span><span class="n">IPv6Network</span><span class="p">(</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span> <span class="p">)</span>
-                <span class="n">record</span><span class="p">[</span><span class="s1">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">network</span><span class="p">)</span> <span class="o">/</span> <span class="n">pfx_norm_base</span>
-                <span class="n">record</span><span class="p">[</span><span class="s1">&#39;iend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">)</span> <span class="o">/</span> <span class="n">pfx_norm_base</span>
-                <span class="n">record</span><span class="p">[</span><span class="s1">&#39;pfxlen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pfx</span><span class="o">.</span><span class="n">prefixlen</span>
+                <span class="n">pfx</span> <span class="o">=</span> <span class="n">ipaddr</span><span class="o">.</span><span class="n">IPv6Network</span><span class="p">(</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]</span> <span class="p">)</span>
+                <span class="n">record</span><span class="p">[</span><span class="s">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">network</span><span class="p">)</span> <span class="o">/</span> <span class="n">pfx_norm_base</span>
+                <span class="n">record</span><span class="p">[</span><span class="s">&#39;iend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">)</span> <span class="o">/</span> <span class="n">pfx_norm_base</span>
+                <span class="n">record</span><span class="p">[</span><span class="s">&#39;pfxlen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pfx</span><span class="o">.</span><span class="n">prefixlen</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">record</span><span class="p">[</span><span class="s1">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">record</span><span class="p">[</span><span class="s1">&#39;iend&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">record</span><span class="p">[</span><span class="s1">&#39;pfxlen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="c1"># record[&#39;equiv&#39;] = (record[&#39;iend&#39;] - record[&#39;istart&#39;] + 1) / pow(2,32)</span>
+                <span class="n">record</span><span class="p">[</span><span class="s">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">record</span><span class="p">[</span><span class="s">&#39;iend&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">record</span><span class="p">[</span><span class="s">&#39;pfxlen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="c"># record[&#39;equiv&#39;] = (record[&#39;iend&#39;] - record[&#39;istart&#39;] + 1) / pow(2,32)</span>
             <span class="k">return</span> <span class="n">record</span><span class="p">[</span><span class="n">w_col_name</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># return record[&#39;type&#39;]</span>
-            <span class="k">return</span> <span class="n">record</span><span class="p">[</span><span class="n">w_col_name</span><span class="p">]</span></div></div>
+            <span class="c"># return record[&#39;type&#39;]</span>
+            <span class="k">return</span> <span class="n">record</span><span class="p">[</span><span class="n">w_col_name</span><span class="p">]</span>
 
-    <span class="c1">#end</span>
-<span class="c1"># end class</span>
+    <span class="c">#end</span>
+<span class="c"># end class</span>
 
-<span class="c1">#########################################################################################</span>
+<span class="c">#########################################################################################</span></div></div>
 </pre></div>
 
           </div>
@@ -267,7 +275,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &copy; Copyright 2015, carlos@lacnic.net.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.4.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

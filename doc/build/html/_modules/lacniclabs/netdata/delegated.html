@@ -56,7 +56,7 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="c1">#########################################################################################</span>
+<span class="c">#########################################################################################</span>
 
 <span class="kn">from</span> <span class="nn">cm2c.csvimport.sql3load</span> <span class="kn">import</span> <span class="n">sql3load</span>
 <span class="kn">from</span> <span class="nn">cm2c.commons.gen.utils</span> <span class="kn">import</span> <span class="n">get_tmp_fn</span>
@@ -65,8 +65,10 @@
 <span class="kn">from</span> <span class="nn">lacniclabs.etc</span> <span class="kn">import</span> <span class="n">rirconfig</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">ipaddr</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
 
-<span class="c1">## begin</span>
+<span class="c">## begin</span>
 <div class="viewcode-block" id="delegatedStats"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats">[docs]</a><span class="k">class</span> <span class="nc">delegatedStats</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Imports delegated stats file from the RIRs.</span>
@@ -75,79 +77,80 @@
 <span class="sd">        s3l / dbh : handle to sql3load instance.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># begin</span>
+    <span class="c"># begin</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Class constructor, receives keyword arguments {rir} and {date}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">drir</span>  <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rir&#39;</span><span class="p">,</span><span class="s1">&#39;lacnic&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ddate</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="s1">&#39;latest&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">local_file</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;local_file&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">db_filename</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;db_filename&#39;</span><span class="p">,</span> <span class="n">get_tmp_fn</span><span class="p">(</span><span class="s2">&quot;.db&quot;</span><span class="p">)</span> <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drir</span>  <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;rir&#39;</span><span class="p">,</span><span class="s">&#39;lacnic&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ddate</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;date&#39;</span><span class="p">,</span> <span class="s">&#39;latest&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_file</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;local_file&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db_filename</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;db_filename&#39;</span><span class="p">,</span> <span class="n">get_tmp_fn</span><span class="p">(</span><span class="s">&quot;.db&quot;</span><span class="p">)</span> <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">as_cache</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;as_cache&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
 
-        <span class="c1"># get archivo delegated</span>
+        <span class="c"># get archivo delegated</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_file</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dlg_fn_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_download_stats_file</span><span class="p">(</span><span class="n">rir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">drir</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ddate</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dlg_fn_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_file</span>
 
-        <span class="c1">## load into database</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">s3_template</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="s1">&#39;rir&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;cc&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">),</span>
-                             <span class="p">(</span><span class="s1">&#39;block&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;length&#39;</span><span class="p">,</span> <span class="s1">&#39;integer&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="s1">&#39;integer&#39;</span><span class="p">),</span>
-                             <span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;orgid&#39;</span><span class="p">,</span> <span class="s1">&#39;integer&#39;</span><span class="p">)</span>
+        <span class="c">## load into database</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s3_template</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="s">&#39;rir&#39;</span><span class="p">,</span> <span class="s">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;cc&#39;</span><span class="p">,</span> <span class="s">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;type&#39;</span><span class="p">,</span> <span class="s">&#39;text&#39;</span><span class="p">),</span>
+                             <span class="p">(</span><span class="s">&#39;block&#39;</span><span class="p">,</span> <span class="s">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;length&#39;</span><span class="p">,</span> <span class="s">&#39;integer&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;date&#39;</span><span class="p">,</span> <span class="s">&#39;integer&#39;</span><span class="p">),</span>
+                             <span class="p">(</span><span class="s">&#39;status&#39;</span><span class="p">,</span> <span class="s">&#39;text&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;orgid&#39;</span><span class="p">,</span> <span class="s">&#39;integer&#39;</span><span class="p">)</span>
                             <span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">s3l</span> <span class="o">=</span> <span class="n">sql3load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s3_template</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_filename</span> <span class="p">,</span> <span class="s2">&quot;|&quot;</span><span class="p">,</span> <span class="s2">&quot;numres&quot;</span> <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s3l</span> <span class="o">=</span> <span class="n">sql3load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s3_template</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">db_filename</span> <span class="p">,</span> <span class="s">&quot;|&quot;</span><span class="p">,</span> <span class="s">&quot;numres&quot;</span><span class="p">,</span> <span class="n">as_cache</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">as_cache</span><span class="p">)</span>
         <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s3l</span><span class="o">.</span><span class="n">importFile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dlg_fn_name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s3l</span>
 
-        <span class="c1"># Add Meta columns</span>
+        <span class="c"># Add Meta columns</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_add_columns</span><span class="p">()</span>
         <span class="k">return</span>
-    <span class="c1"># end</span>
+    <span class="c"># end</span>
 
-    <span class="c1"># begin</span>
+    <span class="c"># begin</span>
 <div class="viewcode-block" id="delegatedStats._add_columns"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats._add_columns">[docs]</a>    <span class="k">def</span> <span class="nf">_add_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Add meta columns and calculate their corresponding values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">r1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s2">&quot;istart INTEGER&quot;</span><span class="p">)</span>
-        <span class="n">r2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s2">&quot;iend INTEGER&quot;</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s2">&quot;istart&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s2">&quot;istart&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s2">&quot;iend&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s2">&quot;iend&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="n">r3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s2">&quot;prefix VARCHAR(80)&quot;</span><span class="p">)</span>
-        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
-        <span class="c1">#</span>
-        <span class="n">r4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s2">&quot;equiv INTEGER&quot;</span><span class="p">)</span>
-        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s2">&quot;equiv&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s2">&quot;equiv&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">r1</span> <span class="ow">and</span> <span class="n">r2</span> <span class="ow">and</span> <span class="n">r3</span> <span class="ow">and</span> <span class="n">r4</span></div>
-    <span class="c1"># end</span>
+        <span class="n">r1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;istart INTEGER&quot;</span><span class="p">)</span>
+        <span class="n">r2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;iend INTEGER&quot;</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;istart&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;istart&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;iend&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;iend&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="n">r3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;prefix VARCHAR(80)&quot;</span><span class="p">)</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;prefix&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;prefix&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="c">#</span>
+        <span class="n">r4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">addMetaColumn</span><span class="p">(</span><span class="s">&quot;equiv INTEGER&quot;</span><span class="p">)</span>
+        <span class="n">mif</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_populate_columns</span><span class="p">(</span><span class="s">&quot;equiv&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">calculateMetaColumn</span><span class="p">(</span><span class="s">&quot;equiv&quot;</span><span class="p">,</span> <span class="n">mif</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">r1</span> <span class="ow">and</span> <span class="n">r2</span> <span class="ow">and</span> <span class="n">r3</span> <span class="ow">and</span> <span class="n">r4</span>
+    <span class="c"># end</span>
 
-    <span class="c1">#begin qs</span>
+    <span class="c">#begin qs</span></div>
 <div class="viewcode-block" id="delegatedStats.qs"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats.qs">[docs]</a>    <span class="k">def</span> <span class="nf">qs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_query</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Queries db expecting a single value, returns a single value.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="n">rs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">_rawQuery</span><span class="p">(</span><span class="n">w_query</span><span class="p">)</span>
         <span class="n">k</span> <span class="o">=</span> <span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span></div>
-    <span class="c1">#end qs</span>
+        <span class="k">return</span> <span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="c">#end qs</span>
 
-    <span class="c1">#begin q</span>
+    <span class="c">#begin q</span></div>
 <div class="viewcode-block" id="delegatedStats.q"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats.q">[docs]</a>    <span class="k">def</span> <span class="nf">q</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_query</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Shorthand for sql3load rawquery, so you can write shorter statements.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">_rawQuery</span><span class="p">(</span><span class="n">w_query</span><span class="p">)</span></div>
-    <span class="c1">#end q    </span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbh</span><span class="o">.</span><span class="n">_rawQuery</span><span class="p">(</span><span class="n">w_query</span><span class="p">)</span>
+    <span class="c">#end q</span>
 
-    <span class="c1"># begin</span>
+    <span class="c"># begin</span></div>
 <div class="viewcode-block" id="delegatedStats._download_stats_file"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats._download_stats_file">[docs]</a>    <span class="k">def</span> <span class="nf">_download_stats_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Downloads stats file for a given rir and date.</span>
@@ -158,22 +161,30 @@
 <span class="sd">        :param date=: Date as in YYYYMMDD or &#39;latest&#39;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dp</span> <span class="o">=</span> <span class="n">dprint</span><span class="p">()</span>
-        <span class="c1"># get delegated</span>
-        <span class="n">ddate</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="s1">&#39;latest&#39;</span><span class="p">)</span>
-        <span class="n">drir</span>  <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rir&#39;</span><span class="p">,</span> <span class="s1">&#39;lacnic&#39;</span><span class="p">)</span>
-        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;Downloading stat file for RIR </span><span class="si">%s</span><span class="s2">, date </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">drir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddate</span><span class="p">))</span>
-        <span class="n">dlg_tmpfile</span> <span class="o">=</span> <span class="n">get_tmp_fn</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;delegated-extended-</span><span class="si">%s</span><span class="s2">-</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">drir</span><span class="p">,</span> <span class="n">ddate</span><span class="p">)</span> <span class="p">)</span>
-        <span class="n">dlg_tmpfile_name</span> <span class="o">=</span> <span class="n">getfile</span><span class="p">(</span><span class="n">rirconfig</span><span class="o">.</span><span class="n">rir_config_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">drir</span><span class="p">][</span><span class="s1">&#39;dlge&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ddate</span><span class="p">),</span> <span class="n">dlg_tmpfile</span><span class="p">,</span><span class="mi">43200</span><span class="p">)</span>
-        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot; OK</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">dlg_tmpfile_name</span></div>
-    <span class="c1"># end</span>
+        <span class="c"># get delegated</span>
+        <span class="n">ddate</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;date&#39;</span><span class="p">,</span> <span class="s">&#39;latest&#39;</span><span class="p">)</span>
+        <span class="n">drir</span>  <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;rir&#39;</span><span class="p">,</span> <span class="s">&#39;lacnic&#39;</span><span class="p">)</span>
+        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s">&quot;Downloading stat file for RIR </span><span class="si">%s</span><span class="s">, date </span><span class="si">%s</span><span class="s">...</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">drir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddate</span><span class="p">))</span>
+        <span class="n">dlg_tmpfile</span> <span class="o">=</span> <span class="n">get_tmp_fn</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&quot;tmp_delegated-extended-</span><span class="si">%s</span><span class="s">-</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">drir</span><span class="p">,</span> <span class="n">ddate</span><span class="p">)</span> <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dlg_f_url</span> <span class="o">=</span> <span class="n">rirconfig</span><span class="o">.</span><span class="n">rir_config_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">drir</span><span class="p">][</span><span class="s">&#39;dlge&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ddate</span><span class="p">)</span>
+            <span class="n">dlg_tmpfile_name</span> <span class="o">=</span> <span class="n">getfile</span><span class="p">(</span> <span class="n">dlg_f_url</span><span class="p">,</span> <span class="n">dlg_tmpfile</span><span class="p">,</span> <span class="mi">3600</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">print</span> <span class="s">&quot;Failed downloading stats file! url=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dlg_f_url</span><span class="p">)</span>
+            <span class="k">raise</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">dlg_tmpfile_name</span><span class="p">:</span>
+            <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s">&quot; FAILED! url: </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dlg_f_url</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">dp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s">&quot; OK</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dlg_tmpfile_name</span>
+    <span class="c"># end</span>
 
-    <span class="c1"># begin</span>
+    <span class="c"># begin</span></div>
 <div class="viewcode-block" id="delegatedStats._add_equiv_column"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats._add_equiv_column">[docs]</a>    <span class="k">def</span> <span class="nf">_add_equiv_column</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">pass</span></div>
-    <span class="c1"># end</span>
+        <span class="k">pass</span>
+    <span class="c"># end</span>
 
-    <span class="c1">#begin</span>
+    <span class="c">#begin</span></div>
 <div class="viewcode-block" id="delegatedStats._populate_columns"><a class="viewcode-back" href="../../../lacniclabs.html#lacniclabs.netdata.delegated.delegatedStats._populate_columns">[docs]</a>    <span class="k">def</span> <span class="nf">_populate_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_col_name</span><span class="p">,</span> <span class="n">w_row</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculates meta columns for the delegated file.</span>
@@ -181,40 +192,40 @@
 <span class="sd">        :param w_row: dictionary with current row values</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">record</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;ipv4&#39;</span> <span class="ow">and</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;block&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
-            <span class="n">pfx_len</span> <span class="o">=</span> <span class="mi">32</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span> <span class="nb">int</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;length&#39;</span><span class="p">]),</span> <span class="mi">2</span><span class="p">)</span> <span class="p">)</span>
-            <span class="n">pfx</span> <span class="o">=</span> <span class="n">ipaddr</span><span class="o">.</span><span class="n">IPv4Network</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;block&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pfx_len</span><span class="p">))</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pfx</span><span class="p">)</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">network</span><span class="p">)</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;iend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">)</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;equiv&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s1">&#39;iend&#39;</span><span class="p">]</span><span class="o">-</span><span class="n">record</span><span class="p">[</span><span class="s1">&#39;istart&#39;</span><span class="p">])</span><span class="o">/</span><span class="mi">256</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;ipv4&#39;</span> <span class="ow">and</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;block&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;*&#39;</span><span class="p">:</span>
+            <span class="n">pfx_len</span> <span class="o">=</span> <span class="mi">32</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span> <span class="nb">int</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s">&#39;length&#39;</span><span class="p">]),</span> <span class="mi">2</span><span class="p">)</span> <span class="p">)</span>
+            <span class="n">pfx</span> <span class="o">=</span> <span class="n">ipaddr</span><span class="o">.</span><span class="n">IPv4Network</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s">&#39;block&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pfx_len</span><span class="p">))</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pfx</span><span class="p">)</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">network</span><span class="p">)</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;iend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">)</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;equiv&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s">&#39;iend&#39;</span><span class="p">]</span><span class="o">-</span><span class="n">record</span><span class="p">[</span><span class="s">&#39;istart&#39;</span><span class="p">])</span><span class="o">/</span><span class="mi">256</span> <span class="o">+</span> <span class="mi">1</span>
             <span class="k">return</span> <span class="n">record</span><span class="p">[</span><span class="n">w_col_name</span><span class="p">]</span>
-        <span class="k">elif</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;ipv6&#39;</span> <span class="ow">and</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;block&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;ipv6&#39;</span> <span class="ow">and</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;block&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;*&#39;</span><span class="p">:</span>
             <span class="n">pfx_norm_base</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">64</span><span class="p">)</span>
-            <span class="c1">#print &quot;row %s&quot; % (dict(w_row))</span>
-            <span class="n">pfx</span> <span class="o">=</span> <span class="n">ipaddr</span><span class="o">.</span><span class="n">IPv6Network</span><span class="p">(</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;block&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span>  <span class="nb">str</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;length&#39;</span><span class="p">])</span> <span class="p">)</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pfx</span><span class="p">)</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">network</span><span class="p">)</span> <span class="o">/</span> <span class="n">pfx_norm_base</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;iend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">)</span> <span class="o">/</span> <span class="n">pfx_norm_base</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;equiv&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s1">&#39;iend&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">record</span><span class="p">[</span><span class="s1">&#39;istart&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="nb">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">32</span><span class="p">)</span>
+            <span class="c">#print &quot;row %s&quot; % (dict(w_row))</span>
+            <span class="n">pfx</span> <span class="o">=</span> <span class="n">ipaddr</span><span class="o">.</span><span class="n">IPv6Network</span><span class="p">(</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;block&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;/&quot;</span> <span class="o">+</span>  <span class="nb">str</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s">&#39;length&#39;</span><span class="p">])</span> <span class="p">)</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pfx</span><span class="p">)</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">network</span><span class="p">)</span> <span class="o">/</span> <span class="n">pfx_norm_base</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;iend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pfx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">)</span> <span class="o">/</span> <span class="n">pfx_norm_base</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;equiv&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s">&#39;iend&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">record</span><span class="p">[</span><span class="s">&#39;istart&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="nb">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">32</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">record</span><span class="p">[</span><span class="n">w_col_name</span><span class="p">]</span>
-        <span class="k">elif</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;asn&#39;</span> <span class="ow">and</span> <span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;block&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;na/asn&#39;</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;block&#39;</span><span class="p">])</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;iend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;block&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;length&#39;</span><span class="p">])</span>
-            <span class="n">record</span><span class="p">[</span><span class="s1">&#39;equiv&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s1">&#39;length&#39;</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;asn&#39;</span> <span class="ow">and</span> <span class="n">w_row</span><span class="p">[</span><span class="s">&#39;block&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;*&#39;</span><span class="p">:</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;na/asn&#39;</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;istart&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s">&#39;block&#39;</span><span class="p">])</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;iend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s">&#39;block&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s">&#39;length&#39;</span><span class="p">])</span>
+            <span class="n">record</span><span class="p">[</span><span class="s">&#39;equiv&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">w_row</span><span class="p">[</span><span class="s">&#39;length&#39;</span><span class="p">])</span>
             <span class="k">return</span> <span class="n">record</span><span class="p">[</span><span class="n">w_col_name</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">None</span></div></div>
-    <span class="c1">#end</span>
+            <span class="k">return</span> <span class="bp">None</span>
+    <span class="c">#end</span>
 
-<span class="c1">## end</span>
+<span class="c">## end</span>
+</div></div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="k">print</span> <span class="s">&quot;Not to be run directly&quot;</span>
 
-<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
-    <span class="k">print</span> <span class="s2">&quot;Not to be run directly&quot;</span>
-
-<span class="c1"># END file</span>
-<span class="c1">#########################################################################################</span>
+<span class="c"># END file</span>
+<span class="c">#########################################################################################</span>
 </pre></div>
 
           </div>
@@ -254,7 +265,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &copy; Copyright 2015, carlos@lacnic.net.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.4.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>
