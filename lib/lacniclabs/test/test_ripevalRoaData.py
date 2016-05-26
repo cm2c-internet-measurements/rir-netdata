@@ -29,7 +29,7 @@ class Test(unittest.TestCase):
             else:
                 self.__class__.rwr = ripevalRoaData(db_filename="tmp/roadata.db")
         else:
-            print "Tests already set up!"
+            # sys.stderr.write("Tests already set up!")
             pass
     ## end
 
@@ -41,14 +41,28 @@ class Test(unittest.TestCase):
         # test relies on logic put in the setUp method
         pass
     ## end
-    #
-    # def testCountRowsLoaded(self):
-    #     #
-    #     ir = self.__class__.rwr.qs("SELECT count(*) FROM riswhois")
-    #     # print "imported rows %s" % (ir)
-    #     self.assertTrue(int(ir) > 1000, "Failed importing more than 1k rows")
-    # # end
-    #
+
+    def testCountRowsLoaded(self):
+        #
+        ir = self.__class__.rwr.qs("SELECT count(*) FROM roadata")
+        # print "imported rows %s" % (ir)
+        self.assertTrue(int(ir) > 10, "Failed importing more than 10 rows")
+    # end
+
+    def testBasicFieldQueries(self):
+        rs1 = self.__class__.rwr.qs("SELECT count(*) AS cnt FROM roadata WHERE origin_as = 'AS8928' ")
+        c = int(rs1)
+        self.assertTrue(int(c)>0, "No networks viewed by AS 8928")
+    # end
+
+    # begin
+    def testOriginASCleanup(self):
+        rs1 = self.__class__.rwr.qs("SELECT count(*) AS cnt FROM roadata WHERE origin_as2 = '8928' ")
+        c = int(rs1)
+        self.assertTrue(int(c)>0, "No networks viewed by AS 8928 (without the AS prefix, origin_as2 column)")
+    # end
+
+
     # def testFieldQueries(self):
     #     rs1 = self.__class__.rwr.q("SELECT count(*) AS cnt FROM riswhois WHERE viewed_by > 5 ")
     #     c = rs1[0]['cnt']

@@ -42,7 +42,7 @@ class ripevalRoaData(object):
         # s3_template = [ ('origin_as', 'text'), ('prefix', 'text'), ('viewed_by', 'integer')]
         csv_template = [('origin_as', 'text'), ('prefix', 'text'), ('maxlen', 'integer')]
         self.dbh = sql3load(csv_template, self.db_filename, ",", "roadata")
-        # self._add_columns() # add meta columns
+        self._add_columns() # add meta columns
 
         if not self.local_file:
             # download Dumps
@@ -74,7 +74,37 @@ class ripevalRoaData(object):
             sys.stderr.write("[%s]\r" % (x.getKey('inserted-rows'))),
         #
         r = self.dbh.importFile(fn, p, 10000)
+        #
+        # calculate new columns
+        # mif = lambda x: self._populate_columns("type", x)
+        mif = lambda x: str.strip(str(x['origin_as']),"AS")
+        p = self.dbh.calculateMetaColumn("origin_as2", mif)
+        return
     # end
+
+    #begin qs
+    def qs(self, w_query):
+        '''
+        Queries db expecting a single value, returns a single value.
+        '''
+        rs = self.dbh._rawQuery(w_query)
+        k = rs[0].keys()
+        return rs[0][k[0]]
+    #end qs
+
+    # begin
+    def _add_columns(self):
+        """
+        Add meta columns to the roadata database.
+        """
+        r0 = self.dbh.addMetaColumn("origin_as2 VARCHAR(10)")
+        r1 = self.dbh.addMetaColumn("istart UNSIGNED BIG INT")
+        r2 = self.dbh.addMetaColumn("iend UNSIGNED BIG INT")
+        r3 = self.dbh.addMetaColumn("type VARCHAR(5)")
+        r4 = self.dbh.addMetaColumn("pfxlen INTEGER")
+        return r1 and r2 and r3 and r4
+    #end
+
 
     #     dp = dprint()
     #     # get delegated
