@@ -15,6 +15,7 @@ from cm2c.commons.gen.utils import get_tmp_fn
 from cm2c.commons.gen.getfile import getfile
 from cm2c.commons.debug.dprint import dprint
 from lacniclabs.etc import rirconfig
+from lacniclabs.utils.addr import pfxExplode
 
 # begin class
 class ripevalRoaData(object):
@@ -59,7 +60,12 @@ class ripevalRoaData(object):
         """
         Downloads RPKI ROA Validator
         """
-        pass
+        dp = dprint()
+        dp.log("Downloading dump file for roadata...")
+        dlg_tmpfile = get_tmp_fn(filename="rpkivalidator-roadata.csv" )
+        # dlg_tmpfile_name4 = getfile(rirconfig.rir_config_data['ripencc']['ris_whois_v4'] , dlg_tmpfile, 86400)
+        dlg_tmpfile_name = getfile("http://ripeval.labs.lacnic.net:8080/export.csv" , dlg_tmpfile, 3600)
+        return dlg_tmpfile
     #end
 
     # begin
@@ -79,6 +85,19 @@ class ripevalRoaData(object):
         # mif = lambda x: self._populate_columns("type", x)
         mif = lambda x: str.strip(str(x['origin_as']),"AS")
         p = self.dbh.calculateMetaColumn("origin_as2", mif)
+
+        # mif = lambda x: pfxExplode(x['pfx'])['istart']
+        def pif(x):
+            y = pfxExplode(x['prefix'])
+            return y['istart']
+        p = self.dbh.calculateMetaColumn("istart", pif)
+
+        #
+        mif = lambda x: pfxExplode(x['prefix'])['iend']
+        p = self.dbh.calculateMetaColumn("iend", mif)
+        mif = lambda x: pfxExplode(x['prefix'])['type']
+        p = self.dbh.calculateMetaColumn("type", mif)
+        #
         return
     # end
 

@@ -19,7 +19,7 @@ from lacniclabs.netdata.riperpki import ripevalRoaData
 class Test(unittest.TestCase):
 
     _setuponce_done = False
-    _use_local_test_data = True
+    _use_local_test_data = False
 
     def setUp(self):
         if not self.__class__._setuponce_done:
@@ -60,6 +60,13 @@ class Test(unittest.TestCase):
         rs1 = self.__class__.rwr.qs("SELECT count(*) AS cnt FROM roadata WHERE origin_as2 = '8928' ")
         c = int(rs1)
         self.assertTrue(int(c)>0, "No networks viewed by AS 8928 (without the AS prefix, origin_as2 column)")
+    # end
+
+    # begin
+    def testAddedColumns(self):
+        rs1 = self.__class__.rwr.qs("SELECT count(*) AS cnt FROM roadata WHERE istart > 0 ")
+        c = int(rs1)
+        self.assertTrue(int(c)>0, "No istarts greater than zero found")
     # end
 
 
