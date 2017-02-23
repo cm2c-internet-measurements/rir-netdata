@@ -10,15 +10,23 @@ Generates daily delegated db dump for lacnic
 import sys
 import lacniclabs.netdata.delegated as dlg
 import lacniclabs.netdata.riswhois as rwh
+import lacniclabs.netdata.riperpki as rpki # import ripevalRoaData
+from datetime import date
+
+# set filename
+fname_base = "var/netdata-%s.db" % (date.today())
 
 ## Import delegated stats files
-d = dlg.delegatedStats(rir='lacnic', date='latest', db_filename='var/netdata-latest.db')
-d = dlg.delegatedStats(rir='arin', date='latest', db_filename='var/netdata-latest.db', as_cache=True)
-d = dlg.delegatedStats(rir='ripencc', date='latest', db_filename='var/netdata-latest.db', as_cache=True)
-d = dlg.delegatedStats(rir='afrinic', date='latest', db_filename='var/netdata-latest.db', as_cache=True)
-d = dlg.delegatedStats(rir='apnic', date='latest', db_filename='var/netdata-latest.db', as_cache=True)
+d = dlg.delegatedStats(rir='lacnic', date='latest', db_filename=fname_base)
+d = dlg.delegatedStats(rir='arin', date='latest', db_filename=fname_base, as_cache=True)
+d = dlg.delegatedStats(rir='ripencc', date='latest', db_filename=fname_base, as_cache=True)
+d = dlg.delegatedStats(rir='afrinic', date='latest', db_filename=fname_base, as_cache=True)
+d = dlg.delegatedStats(rir='apnic', date='latest', db_filename=fname_base, as_cache=True)
 
 ## Import RISWHOIS
-r = rwh.risWhois(date='latest', db_filename='var/netdata-latest.db')
+r = rwh.risWhois(date='latest', db_filename=fname_base)
+
+## Import ROADATA
+k = rpki.ripevalRoaData(db_filename="tmp/netdata-latest.db")
 
 sys.exit()
