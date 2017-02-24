@@ -4,6 +4,7 @@ Generates daily delegated db dump for lacnic
 :author: Carlos M. Martinez, carlos@lacnic.net
 :date: 20151228
 :date: 20160523
+:date: 20170224 - fixed import roa data
 
 """
 
@@ -17,16 +18,27 @@ from datetime import date
 fname_base = "var/netdata-%s.db" % (date.today())
 
 ## Import delegated stats files
+print "====>> RUNNING: Import delegated stats files"
 d = dlg.delegatedStats(rir='lacnic', date='latest', db_filename=fname_base)
 d = dlg.delegatedStats(rir='arin', date='latest', db_filename=fname_base, as_cache=True)
 d = dlg.delegatedStats(rir='ripencc', date='latest', db_filename=fname_base, as_cache=True)
 d = dlg.delegatedStats(rir='afrinic', date='latest', db_filename=fname_base, as_cache=True)
 d = dlg.delegatedStats(rir='apnic', date='latest', db_filename=fname_base, as_cache=True)
+print " "
+print "============================================="
 
 ## Import RISWHOIS
+print "====>> RUNNING: Import RISWHOIS origin AS stats"
 r = rwh.risWhois(date='latest', db_filename=fname_base)
+print " "
+print "============================================="
+
 
 ## Import ROADATA
-k = rpki.ripevalRoaData(db_filename="tmp/netdata-latest.db")
+print "====>> RUNNING: Import RPKI validator ROA data"
+k = rpki.ripevalRoaData(db_filename=fname_base)
+print " "
+print "============================================="
+
 
 sys.exit()
