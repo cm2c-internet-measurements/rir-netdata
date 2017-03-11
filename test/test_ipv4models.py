@@ -6,7 +6,7 @@
 
 import unittest
 
-from cm2c.commons.csvimport.sql3load import sql3load
+from cm2c.csvimport.sql3load import sql3load
 
 class TestDatasets(unittest.TestCase):
 
