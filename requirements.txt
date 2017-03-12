@@ -1,0 +1,3 @@
+ipaddr
+git+https://github.com/LACNIC/labs-opendata-netdata.git#egg=lacniclabs_netdata-0.1.1
+git+https://github.com/carlosm3011/cm2c-python-lib.git@v2#egg=cm2c-0.1.1
