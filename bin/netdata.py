@@ -91,7 +91,7 @@ def cleanup():
 if __name__ == "__main__":
     #
     click.echo("Welcome to NETDATA: Importing Internet addressing-related datasets\n")
-    click.echo("  -Author : carlos@lacnic.net\n")
-    click.echo("  -Version: %s, released %s\n" % (prg_version, %prg_date))
+    click.echo("  -Author : carlos@lacnic.net")
+    click.echo("  -Version: %s, released %s\n" % (prg_version, prg_date))
     cli()
     sys.exit()
