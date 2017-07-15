@@ -25,7 +25,7 @@ prg_version = "0.1.1"
 prg_date = "2017-04-04"
 
 # set filename
-fname_base = "var/netdata-%s.db" % (date.today())
+fname_base = "%s-%s.db" % ("var/netdata",date.today())
 dateToday = date.today()
 
 
@@ -77,7 +77,7 @@ def cli(verbose):
 @click.option("--dset", default="all", help="Dataset to import, can be delegated|ripevalapp|riswhois|all. Defaults to all")
 @click.option("--basename", default="var/netdata", help="Filename base, defaults to var/netdata. Date tag is added automatically")
 def get(rir, date, dset, basename):
-    global fname_base 
+    global fname_base
     fname_base = "%s-%s.db" % (basename, dateToday)
     click.echo("Database filename is %s" % (fname_base))
 

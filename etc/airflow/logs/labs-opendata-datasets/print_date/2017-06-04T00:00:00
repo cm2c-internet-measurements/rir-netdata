@@ -1,0 +1,20 @@
+[2017-07-15 18:52:29,138] {models.py:167} INFO - Filling up the DagBag from /Users/carlos/Workspaces/LACNIC-Wksp/70-checkouts/labs-opendata-datasets.git/etc/airflow/dags/labs-datasets-dag.py
+[2017-07-15 18:52:29,524] {base_task_runner.py:112} INFO - Running: ['bash', '-c', u'airflow run labs-opendata-datasets print_date 2017-06-04T00:00:00 --job_id 12 --raw -sd DAGS_FOLDER/labs-datasets-dag.py']
+[2017-07-15 18:52:29,936] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:29,935] {__init__.py:57} INFO - Using executor SequentialExecutor
+[2017-07-15 18:52:30,277] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:30,277] {models.py:167} INFO - Filling up the DagBag from /Users/carlos/Workspaces/LACNIC-Wksp/70-checkouts/labs-opendata-datasets.git/etc/airflow/dags/labs-datasets-dag.py
+[2017-07-15 18:52:30,605] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:30,605] {models.py:1126} INFO - Dependencies all met for <TaskInstance: labs-opendata-datasets.print_date 2017-06-04 00:00:00 [queued]>
+[2017-07-15 18:52:30,613] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:30,613] {models.py:1126} INFO - Dependencies all met for <TaskInstance: labs-opendata-datasets.print_date 2017-06-04 00:00:00 [queued]>
+[2017-07-15 18:52:30,613] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:30,613] {models.py:1318} INFO - 
+[2017-07-15 18:52:30,613] {base_task_runner.py:95} INFO - Subtask: --------------------------------------------------------------------------------
+[2017-07-15 18:52:30,614] {base_task_runner.py:95} INFO - Subtask: Starting attempt 1 of 2
+[2017-07-15 18:52:30,614] {base_task_runner.py:95} INFO - Subtask: --------------------------------------------------------------------------------
+[2017-07-15 18:52:30,614] {base_task_runner.py:95} INFO - Subtask: 
+[2017-07-15 18:52:30,626] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:30,626] {models.py:1342} INFO - Executing <Task(BashOperator): print_date> on 2017-06-04 00:00:00
+[2017-07-15 18:52:30,641] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:30,640] {bash_operator.py:71} INFO - tmp dir root location: 
+[2017-07-15 18:52:30,641] {base_task_runner.py:95} INFO - Subtask: /var/folders/xx/6sc4r1rs5093ptq8hmm_7_d00000gn/T
+[2017-07-15 18:52:30,643] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:30,642] {bash_operator.py:80} INFO - Temporary script location :/var/folders/xx/6sc4r1rs5093ptq8hmm_7_d00000gn/T/airflowtmpx3qgtm//var/folders/xx/6sc4r1rs5093ptq8hmm_7_d00000gn/T/airflowtmpx3qgtm/print_date9ORaWm
+[2017-07-15 18:52:30,643] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:30,642] {bash_operator.py:81} INFO - Running command: date
+[2017-07-15 18:52:30,649] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:30,649] {bash_operator.py:90} INFO - Output:
+[2017-07-15 18:52:30,659] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:30,659] {bash_operator.py:94} INFO - Sat Jul 15 18:52:30 CEST 2017
+[2017-07-15 18:52:30,660] {base_task_runner.py:95} INFO - Subtask: [2017-07-15 18:52:30,660] {bash_operator.py:97} INFO - Command exited with return code 0
+[2017-07-15 18:52:34,522] {jobs.py:2083} INFO - Task exited with return code 0
