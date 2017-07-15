@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Generates daily delegated db dump for lacnic
 
