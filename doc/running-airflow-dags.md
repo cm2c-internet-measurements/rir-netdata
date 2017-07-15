@@ -35,7 +35,15 @@ Testing a command actually RUNS the command and thus requires a date.
 
 ## Backfilling
 
-TBW**
+Backfilling is the process of running tasks for **past dates**:
+
+```
+# optional, start a web server in debug mode in the background
+# airflow webserver --debug &
+
+# start your backfill on a date range
+airflow backfill tutorial -s 2015-06-01 -e 2015-06-07
+```
 
 ## Scheduling
 
