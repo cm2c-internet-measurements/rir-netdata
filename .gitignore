@@ -8,6 +8,7 @@ tmp/*.txt
 tmp/*.html
 tmp
 etc/airflow/logs
+etc/airflow/airflow.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

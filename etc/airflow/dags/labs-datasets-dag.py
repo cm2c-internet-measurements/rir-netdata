@@ -13,7 +13,6 @@ from airflow.operators.bash_operator import BashOperator
 from datetime import datetime, timedelta
 import os
 
-
 default_args = {
     'owner': 'airflow',
     'depends_on_past': True,
@@ -48,7 +47,7 @@ netdata_tmpl_command = """
 # t1, t2 and t3 are examples of tasks created by instantiating operators
 t2 = BashOperator(
     task_id='print_files',
-    bash_command='ls -l %s/var/netdata' % (os.getcwd()),
+    bash_command="ls -l '%s'/var/netdata*" % (os.getcwd()),
     dag=dag)
 
 t1 = BashOperator(

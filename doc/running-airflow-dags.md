@@ -32,6 +32,7 @@ Testing a command actually RUNS the command and thus requires a date.
 ```bash
 ./bin/af.sh test labs-opendata-datasets import_base_datasets 2017-06-01
 ```
+The date used here is a "fiction" date as-if the command had been run by the Airflow scheduler.
 
 ## Backfilling
 
@@ -44,6 +45,8 @@ Backfilling is the process of running tasks for **past dates**:
 # start your backfill on a date range
 airflow backfill tutorial -s 2015-06-01 -e 2015-06-07
 ```
+
+This is akin to run the command in test mode (see above) for the range of dates specified (-s, start and -e, end).
 
 ## Scheduling
 
