@@ -1,6 +1,7 @@
 click
 ipaddr
 # airflow
+fire
 future
 six
 -e git+https://github.com/LACNIC/labs-opendata-netdata.git#egg=lacniclabs-0.1

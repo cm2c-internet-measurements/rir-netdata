@@ -103,7 +103,7 @@ def get(rir, date, dset, basename):
 
 @cli.command()
 def cleanup():
-    click.echo("Doing some cleanup... WARN: TBI\n")
+    click.echo("Doing some cleanup... WARN: TBI (right now it does nothing)\n")
     pass
 ## END cleanup
 
