@@ -68,3 +68,5 @@ docs/_build/
 # PyBuilder
 target/
 .spyproject/
+.vscode
+*.csv
