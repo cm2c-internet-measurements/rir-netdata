@@ -39,7 +39,7 @@ def ip(query):
 @click.option('--outfile', default='-', help="Output file name, use - for stdout")
 def bulk_query(fields, outfile):
     """
-    Read a list of ASNs or IP resources from STDIN and return SW info on STDOUT.
+    Read a list of ASNs or IP resources from STDIN and return SimpleWhois info on STDOUT.
     """
     global sw
 
@@ -52,7 +52,9 @@ def bulk_query(fields, outfile):
     for line in sys.stdin:
         line = line.strip()
         if line.find("#") != 0: #if comment, skip
-            r = sw.autnum(line)
+            parts = line.split("|")
+            f.write(parts)
+            r = sw.autnum(parts[0].strip())
             if r != None:
                 f.write("%s | %s\n" % (line, r[fields]))
             else:
