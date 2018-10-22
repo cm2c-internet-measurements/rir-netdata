@@ -8,6 +8,12 @@
 1. Current naming is misleading (tool called netdata depending on separate module of the same name)
 2. Netdata module should probably be integrated in this same repo.
 
+## SimpleWhois
+1. Add mode of operation in batch, similar to the Team Cymru implementations
+
+## RDAP Client
+1. Create an RDAP client to fetch org contact information when needed
+
 # Completed items
 
 ## Add support for RIPE NCC RPKI Validator ROA export
