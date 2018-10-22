@@ -4,6 +4,10 @@
 1. enrich prefix information with the classic {type,start,end,equiv}
 2. further enrich prefix information with country code information {as_cc, pfx_cc}
 
+## Code Reorgs
+1. Current naming is misleading (tool called netdata depending on separate module of the same name)
+2. Netdata module should probably be integrated in this same repo.
+
 # Completed items
 
 ## Add support for RIPE NCC RPKI Validator ROA export
