@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+click = "*"
+ipaddr = "*"
+fire = "*"
+future = "*"
+six = "*"
+lacniclabs-0-1 = {editable = true,git = "https://github.com/cm2c-internet-measurements/rir-netdatalib.git"}
+cm2c-0-1-1 = {editable = true,git = "https://github.com/carlosm3011/cm2c-python-lib.git",ref = "v2"}
+
+[requires]
+python_version = "3.7"

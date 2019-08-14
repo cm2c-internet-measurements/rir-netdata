@@ -70,3 +70,4 @@ target/
 .spyproject/
 .vscode
 *.csv
+Pipfile.lock
