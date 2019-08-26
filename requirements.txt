@@ -5,4 +5,4 @@ fire
 future
 six
 -e git+https://github.com/cm2c-internet-measurements/rir-netdatalib.git#egg=lacniclabs-0.1
--e git+https://github.com/carlosm3011/cm2c-python-lib.git@v2#egg=cm2c-0.1.1
+-e git+https://github.com/carlosm3011/cm2c-python-commons.git@v2#egg=cm2c-0.1.8
