@@ -60,7 +60,7 @@ def import_riswhois(rir, date):
 def import_ripevalapp(rir, date):
     ## Import ROADATA
     print "====>> RUNNING: Import RPKI validator ROA data"
-    k = rpki.ripevalRoaData(db_filename=fname_base, "https://ripeval.labs.lacnic.net/api/export.csv")
+    k = rpki.ripevalRoaData(db_filename=fname_base, url="https://ripeval.labs.lacnic.net/api/export.csv")
     print " "
     print "============================================="
 ## END import_rpkivalapp():
