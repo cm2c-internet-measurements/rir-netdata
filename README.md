@@ -61,4 +61,12 @@ exit 0
 
 ### Docker image
 
-TBW*
+- Install either the images python:2.7 or python:2.7-slim
+- Run manually as follows:
+
+```
+$ docker run -ti -v $(pwd):/opt/rir-netdata python:2.7 /bin/bash
+$ cd /opt/rir-netdada
+$ pip install -r requirements.txt
+$ ./bin/netdata.py get
+```
