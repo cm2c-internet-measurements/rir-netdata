@@ -34,3 +34,39 @@ CREATE TABLE roadata (id INTEGER PRIMARY KEY, origin_as text, prefix text, maxle
 ```
 CREATE TABLE riswhois (id INTEGER PRIMARY KEY, origin_as text, prefix text, viewed_by integer, istart UNSIGNED BIG INT, iend UNSIGNED BIG INT, type VARCHAR(5), pfxlen INTEGER);
 ```
+
+
+## How to use
+
+### Standalone install
+
+```
+# abort on error
+set -e
+
+HOME=$(pwd)
+ls -l $HOME
+pip install pipenv
+PIPENV=$(which pipenv)
+mkdir -p src
+cd src
+rm -rf rir-netdata || /bin/true
+git clone https://github.com/cm2c-internet-measurements/rir-netdata.git rir-netdata
+cd rir-netdata
+$PIPENV install -r requirements.txt
+$PIPENV run ./bin/netdata.py get
+
+exit 0
+```
+
+### Docker image
+
+- Install either the images python:2.7 or python:2.7-slim
+- Run manually as follows:
+
+```
+$ docker run -ti -v $(pwd):/opt/rir-netdata python:2.7 /bin/bash
+$ cd /opt/rir-netdada
+$ pip install -r requirements.txt
+$ ./bin/netdata.py get
+```
