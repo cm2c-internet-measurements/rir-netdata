@@ -1,8 +1,8 @@
-# RIR NETDATA
+# RIR NETDATA v3
 
 ## Abstract
 
-Pipeline for producing a consolidated sqlite3 file containing:
+Pipeline for producing a consolidated sqlite3 file containing, now updated for python3 with better modularization:
 
 - an imported version of all five RIRs "delegated-extended" files
 - an imported version of a current snapshot of a RIPE RPKI validator 
