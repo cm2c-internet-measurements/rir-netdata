@@ -1,0 +1,24 @@
+[project]
+name = ""
+version = ""
+description = ""
+authors = [
+    {name = "Carlos Martinez", email = "carlos@cagnazzo.uy"},
+]
+dependencies = ["click", "ipaddr", "fire", "future", "six", "pylint", "petl", "-e git+https://github.com/carlosm3011/cm2c-python-commons.git#egg=cm2c-0.1.8"]
+requires-python = ">=3.7"
+license = {text = "MIT"}
+
+[project.urls]
+homepage = ""
+
+[tool]
+[tool.pdm]
+[[tool.pdm.source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[build-system]
+requires = ["pdm-pep517"]
+build-backend = "pdm.pep517.api"

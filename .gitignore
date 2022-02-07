@@ -71,3 +71,5 @@ target/
 .vscode
 *.csv
 Pipfile.lock
+.pdm.toml
+__pypackages__
