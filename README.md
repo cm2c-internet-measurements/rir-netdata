@@ -40,6 +40,8 @@ CREATE TABLE riswhois (id INTEGER PRIMARY KEY, origin_as text, prefix text, view
 
 ### Standalone install
 
+The following script creates a virtual environment using pipenv:
+
 ```
 # abort on error
 set -e
@@ -59,7 +61,7 @@ $PIPENV run ./bin/netdata.py get
 exit 0
 ```
 
-### Docker image
+### Running inside Docker image
 
 - Install either the images python:2.7 or python:2.7-slim
 - Run manually as follows:
@@ -69,4 +71,16 @@ $ docker run -ti -v $(pwd):/opt/rir-netdata python:2.7 /bin/bash
 $ cd /opt/rir-netdada
 $ pip install -r requirements.txt
 $ ./bin/netdata.py get
+```
+
+### Building a Docker image
+
+```
+docker build . -t opendata/rir-netdata:v2
+```
+
+The resulting image can be run as follows:
+
+```
+docker run -ti -v $(pwd)/var:/opt/rir-netdata/var get
 ```
