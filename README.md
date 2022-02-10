@@ -5,13 +5,14 @@
 Pipeline for producing a consolidated sqlite3 file containing, now updated for python3 with better modularization:
 
 - an imported version of all five RIRs "delegated-extended" files
-- an imported version of a current snapshot of a RIPE RPKI validator 
+- an imported version of a current snapshot of an RPKI validator
 - an imported version of a current RIPE "riswhois" dump
 
 All imported data is enriched in different ways, adding convenience fields to make querying easier.
 
 *Author(s)*: Carlos M. Martinez (carlos@lacnic.net)
 *Date*: July 19, 2017
+*Date*: January 20, 2022
 
 ## Tables and fields
 
