@@ -13,5 +13,11 @@
         "CA": {
             "name": "Canada"
         }   
-    }     
+    },     
+    "links": {
+        "delegated": "",
+        "rpki": "",
+        "routing": "",
+        "xferlog": ""
+    }
 }
