@@ -1,8 +1,9 @@
 click
 ipaddr
-fire
-future
-six
-pylint
+pytricia
+# fire
+# future
+# six
+# pylint
 petl
--e git+https://github.com/carlosm3011/cm2c-python-commons.git#egg=cm2c-0.1.8
+# -e git+https://github.com/carlosm3011/cm2c-python-commons.git#egg=cm2c-0.1.8
