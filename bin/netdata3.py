@@ -19,13 +19,14 @@ _VERSION = "3.0.1"
 def cli():
     pass
 
-@click.command()
+@cli.command()
 @click.option("--dataset", help="Dataset to import. Values are delegated|ris|rpki")
-def load(dataset):
-    print(f"Importing dataset: {dataset}")
+@click.option("--rir", help="RIR data to import. Values are lacnic|arin|ripencc|apnic|afrinic")
+def load(dataset, rir):
+    print(f"Importing dataset {dataset} for rir {rir}")
 # end import
 
-cli.add_command(load)
+# cli.add_command(load)
 
 if __name__ == "__main__":
     print("Bienvenido a netdada3")

@@ -15,11 +15,17 @@ class GenericImport:
     GenericImport is an abstract class which serves as an skeleton for other imports.
     """
 
+    _datasets = {
+        'delegated': None,
+        'ris': None,
+        'rpki': None
+    }
+
     def __init__(self) -> None:
         pass
     # end def 
 
-    def load(self) -> None:
+    def load(self, pdataset, prir) -> None:
         """
         Loads data
         """
