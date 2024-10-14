@@ -68,7 +68,7 @@ exit 0
 
 ```
 $ docker run -ti -v $(pwd):/opt/rir-netdata python:2.7 /bin/bash
-$ cd /opt/rir-netdada
+$ cd /opt/rir-netdata
 $ pip install -r requirements.txt
 $ ./bin/netdata.py get
 ```
