@@ -22,8 +22,12 @@ import lacniclabs.netdata.riperpki as rpki # import ripevalRoaData
 from datetime import date
 
 # program version
-prg_version = "0.1.2"
-prg_date = "2018-03-08"
+# prg_version = "0.1.2"
+# prg_date = "2018-03-08"
+
+prg_version = "0.1.3"
+prg_date = "2024-10-14"
+
 
 # set filename
 fname_base = "%s-%s.db" % ("var/netdata",date.today())
