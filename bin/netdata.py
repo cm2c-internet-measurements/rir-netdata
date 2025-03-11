@@ -8,6 +8,8 @@ Generates daily delegated db dump for lacnic
 :date: 20170224 - fixed import roa data
 :date: 20170404 - forked from genDailyDlgDB, added click cmd line framework
 :date: 20180308 - fixed use of date parameter for delegated import
+:date: 20241014 - fixed something
+:date: 20250311 - changed arin to use https instead of http, added some additional messaging for clarity
 
 ./netdata --dset=[delegated|ripevalapp|riswhois|all] --rir=[<rir name>|all] --date=[YYYYMMDD|latest] \
           --basename=[var/netdata]
@@ -25,9 +27,11 @@ from datetime import date
 # prg_version = "0.1.2"
 # prg_date = "2018-03-08"
 
-prg_version = "0.1.3"
-prg_date = "2024-10-14"
+# prg_version = "0.1.3"
+# prg_date = "2024-10-14"
 
+prg_version = "0.1.4"
+prg_date = "2025-03-11"
 
 # set filename
 fname_base = "%s-%s.db" % ("var/netdata",date.today())
