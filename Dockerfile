@@ -3,7 +3,7 @@
 FROM python:2.7
 RUN mkdir -p /opt/rir-netdata
 WORKDIR /opt/rir-netdata
-COPY requirements.txt Pipfile /opt/rir-netdata
+COPY requirements.txt Pipfile /opt/rir-netdata/
 COPY bin /opt/rir-netdata/bin
 COPY lib /opt/rir-netdata/lib
 COPY var /opt/rir-netdata/var
