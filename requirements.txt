@@ -6,5 +6,5 @@ future
 six
 consecution
 pylint
--e git+https://github.com/cm2c-internet-measurements/rir-netdatalib.git#egg=lacniclabs-0.1
+-e git+https://github.com/cm2c-internet-measurements/rir-netdatalib.git#egg=netdatalib
 -e git+https://github.com/carlosm3011/cm2c-python-commons.git#egg=cm2c-0.1.8

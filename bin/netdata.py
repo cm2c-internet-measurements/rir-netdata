@@ -22,8 +22,12 @@ import lacniclabs.netdata.riperpki as rpki # import ripevalRoaData
 from datetime import date
 
 # program version
-prg_version = "0.1.2"
-prg_date = "2018-03-08"
+# prg_version = "0.1.2"
+# prg_date = "2018-03-08"
+
+prg_version = "0.1.3"
+prg_date = "2024-10-14"
+
 
 # set filename
 fname_base = "%s-%s.db" % ("var/netdata",date.today())
@@ -60,7 +64,7 @@ def import_riswhois(rir, date):
 def import_ripevalapp(rir, date):
     ## Import ROADATA
     print "====>> RUNNING: Import RPKI validator ROA data"
-    k = rpki.ripevalRoaData(db_filename=fname_base, url="https://ripeval.labs.lacnic.net/api/export.csv")
+    k = rpki.ripevalRoaData(db_filename=fname_base, url="https://routinator.labs.lacnic.net/csv")
     print " "
     print "============================================="
 ## END import_rpkivalapp():
