@@ -24,7 +24,7 @@ Each run produces `netdata-YYYYMMDD.db` with four tables:
 | --- | --- | --- |
 | **`numres`** | Every IPv4, IPv6 and ASN delegation from the five Regional Internet Registries: holder country, status, date, and holder id | The *delegated-extended* statistics files of [AFRINIC](https://www.afrinic.net), [APNIC](https://www.apnic.net), [ARIN](https://www.arin.net), [LACNIC](https://www.lacnic.net) and [RIPE NCC](https://www.ripe.net) |
 | **`roadata`** | Every validated RPKI ROA from all five trust anchors, tagged with the country of the prefix and of its origin AS | A [Routinator](https://routinator.docs.nlnetlabs.nl/) CSV export |
-| **`riswhois`** | Which AS originates each prefix in the global BGP table, and how many RIS peers see it | [RIPE RIS](https://ris.ripe.net) whois dumps, IPv4 and IPv6 |
+| **`riswhois`** | Which AS originates each prefix in the global BGP table, how many RIS peers see it, and its **RPKI validity** (`valid` / `invalid` / `notfound`) | [RIPE RIS](https://ris.ripe.net) whois dumps, IPv4 and IPv6 |
 | **`meta`** | Provenance: the URL, fetch time, source serial, row count and SHA-256 of every input file | The run itself |
 
 Every row also gets **convenience columns**, so range and size questions become simple comparisons:
@@ -65,7 +65,7 @@ flowchart LR
 
 1. **Download** every source over HTTPS, each from its operator's own server. Files are cached, and transient failures are retried with backoff.
 2. **Parse and derive.** Each file is streamed, its comment and summary lines are skipped, and the convenience columns are computed. Delegated files are checked against their own summary counts, which catches truncated downloads.
-3. **Enrich.** ROAs get the country codes of their prefix and origin AS, looked up in `numres`.
+3. **Enrich.** ROAs get the country codes of their prefix and origin AS, looked up in `numres`. Every BGP route gets its RPKI route origin validation status (RFC 6811), computed against all ROAs.
 4. **Publish atomically.** The database is built in a temporary file and renamed into place only when every step has succeeded.
 
 ## Getting started
@@ -145,6 +145,9 @@ GROUP BY cc ORDER BY roas DESC LIMIT 10;
 -- ROAs whose origin AS is registered in a different country than the prefix
 SELECT prefix, origin_as, cc, origin_as_cc FROM roadata
 WHERE cc <> origin_as_cc AND 'ZZ' NOT IN (cc, origin_as_cc);
+
+-- RPKI-invalid routes in BGP, and why (wrong origin AS, too specific, or an AS-set)
+SELECT rovreason, count(*) FROM riswhois WHERE rovstatus = 'invalid' GROUP BY rovreason;
 
 -- Which inputs was this file built from?
 SELECT source, fetched_at_utc, source_serial, row_count FROM meta;

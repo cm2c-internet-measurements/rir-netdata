@@ -1,6 +1,7 @@
 """Orchestrates a run: download every requested source, then build the db atomically."""
 
 import sqlite3
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -10,7 +11,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-from rir_netdata import __version__, db, enrich, progress
+from rir_netdata import __version__, db, enrich, progress, rov
 from rir_netdata.config import Config
 from rir_netdata.fetch import Fetched, fetch, make_client
 from rir_netdata.sources import Tick, delegated, riswhois, rpki
@@ -119,8 +120,9 @@ def _build(
     fetched: list[Fetched],
     started: str,
     console: Console,
-) -> list[db.MetaRow]:
+) -> tuple[list[db.MetaRow], Counter[str] | None]:
     tables = list(dict.fromkeys(j.table for j in jobs))
+    rov_stats = None
     for table in tables:
         db.create_table(conn, table)
 
@@ -157,8 +159,20 @@ def _build(
                     "roadata.origin_as_cc left NULL"
                 )
 
+        if "riswhois" in tables:
+            if "roadata" in tables:
+                with progress.task(bars, "index ROAs", rov.count(conn, "roadata")) as tick:
+                    idx = rov.load_index(conn, tick)
+                with progress.task(bars, "validate riswhois", rov.count(conn, "riswhois")) as tick:
+                    rov_stats = rov.run(conn, idx, tick)
+            else:
+                console.print(
+                    "[yellow]warning:[/] roadata not in this run; riswhois.rovstatus, "
+                    "rovreason and rov_roas left NULL"
+                )
+
     db.write_meta(conn, meta)
-    return meta
+    return meta, rov_stats
 
 
 def run(cfg: Config, source: Source, rirs: list[str], target: Path, console: Console) -> Path:
@@ -171,9 +185,16 @@ def run(cfg: Config, source: Source, rirs: list[str], target: Path, console: Con
 
     console.rule("[bold]Building database")
     with db.build(target) as conn:
-        meta = _build(conn, jobs, fetched, _iso(started), console)
+        meta, rov_stats = _build(conn, jobs, fetched, _iso(started), console)
 
     _summary(console, meta, target)
+    if rov_stats:
+        total = sum(rov_stats.values())
+        parts = ", ".join(
+            f"{s} {rov_stats[s]:,} ({rov_stats[s] / total:.1%})"
+            for s in (rov.VALID, rov.INVALID, rov.NOTFOUND)
+        )
+        console.print(f"[bold]ROV[/] riswhois: {parts}")
     return target
 
 
