@@ -1,6 +1,6 @@
 # rir-netdata — Specification
 
-Status: **draft for the `refactor-2026` rewrite** · Last updated: 2026-11-10 · Owner: Carlos M. Martinez
+Status: **v2.0 (implemented on `refactor-2026`)** · Last updated: 2026-11-10 · Owner: Carlos M. Martinez
 
 ## 1. Purpose
 

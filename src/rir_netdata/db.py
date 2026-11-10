@@ -64,11 +64,17 @@ def build(target: Path) -> Iterator[sqlite3.Connection]:
     os.close(fd)
     tmp = Path(tmp_name)
     conn = sqlite3.connect(tmp)
+    # The temp file is discarded on any failure, so journaling and per-commit syncs protect
+    # nothing; skipping them matters on slow filesystems (e.g. container bind mounts on macOS).
+    conn.execute("PRAGMA journal_mode = OFF")
+    conn.execute("PRAGMA synchronous = OFF")
     try:
         conn.execute(DDL["meta"])
         yield conn
         conn.commit()
         conn.close()
+        with tmp.open("rb+") as fh:  # one sync before the rename makes the published file durable
+            os.fsync(fh.fileno())
         tmp.chmod(0o666 & ~_umask())  # mkstemp creates 0600; the db is meant to be shared
         tmp.replace(target)
     except BaseException:

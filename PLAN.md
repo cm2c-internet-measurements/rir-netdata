@@ -11,7 +11,7 @@ The staged plan for the Python 3 rewrite described in `SPEC.md`. Each stage ends
 | 4 | Delegated → `numres` | done |
 | 5 | RPKI → `roadata`, RIS → `riswhois` | done |
 | 6 | CC enrichment | done |
-| 7 | Parity, packaging, cleanup | todo |
+| 7 | Parity, packaging, cleanup | done (PR open) |
 
 ## Stage 0: Skeleton
 
@@ -86,3 +86,8 @@ The staged plan for the Python 3 rewrite described in `SPEC.md`. Each stage ends
 - A uv-based Dockerfile, a new Makefile (`build`/`push`/`run`/`test`), and a README rewritten from SPEC.
 - Delete the legacy code: `bin/`, `etc/airflow`, `doc/`, the old `test/`, Pipfile, `requirements.txt` and the old Dockerfile.
 - Open a PR to `master`.
+
+**Packaging notes (2026-11-10):**
+
+- The image is 178 MB (legacy: 891 MB).
+- Building on a macOS podman bind mount was slow: 606 s for a full run. Turning off journaling and per-commit syncs on the temp build file, with one fsync before the rename, brought it to 229 s; downloads through the VM account for most of that. With `./tmp` mounted as the cache it takes 29 s.
