@@ -49,13 +49,19 @@ def test_ipv4_roa(conn):
         "equiv": 4,
         "cc": None,
         "origin_as_cc": None,
+        "equiv2": 4,
     }
 
 
 def test_ipv6_roa(conn):
     rpki.load(conn, FIXTURE)
     r = conn.execute("SELECT * FROM roadata WHERE origin_as = 'AS22894'").fetchone()
-    assert (r["type"], r["pfxlen"], r["equiv"]) == ("ipv6", 48, 0)
+    assert (r["type"], r["pfxlen"], r["equiv"], r["equiv2"]) == (
+        "ipv6",
+        48,
+        1.52587890625e-05,
+        65536,
+    )
     assert r["istart"] == 0x2001120100000000
     assert r["iend"] == 0x200112010000FFFF
 

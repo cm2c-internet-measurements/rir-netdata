@@ -1,10 +1,11 @@
 """Address math shared by every source.
 
 Turns a delegated (type, block, length) triple or a textual prefix into the derived columns
-defined in SPEC.md §4-5: type, istart, iend, pfxlen, prefix and equiv.
+defined in SPEC.md §4-5: type, istart, iend, pfxlen, prefix, equiv and equiv2.
 
 Units (SPEC §5.5): IPv4 in addresses, IPv6 in /64s (address >> 64), ASNs as ASNs.
-Ranges are inclusive. ``equiv`` is an integer floor of /24s (IPv4) or /32s (IPv6).
+Ranges are inclusive. ``equiv`` reproduces the legacy formula of each table exactly, for
+compatibility with existing scripts (SPEC §5.6); ``equiv2`` is the exact integer size.
 """
 
 from dataclasses import dataclass
@@ -24,20 +25,27 @@ class Resource:
     iend: int | None
     pfxlen: int | None
     prefix: str | None
-    equiv: int | None
+    equiv: int | float | None
+    equiv2: int | None = None  # roadata only: /24s (IPv4) or whole /64s (IPv6)
 
 
 def _is_pow2(n: int) -> bool:
     return n > 0 and n & (n - 1) == 0
 
 
-def _ipv6(net: IPv6Network) -> Resource:
+def _ipv6(net: IPv6Network, *, fractional: bool) -> Resource:
+    """``fractional`` selects the roadata equiv (float /32s) over the numres one (floor)."""
+    plen = net.prefixlen
     if not net.subnet_of(GLOBAL_UNICAST):
-        return Resource("ipv6", 0, 0, net.prefixlen, str(net), 0)
+        return Resource("ipv6", 0, 0, plen, str(net), 0, 0 if fractional else None)
     istart = int(net.network_address) >> 64
     iend = int(net.broadcast_address) >> 64
+    if not fractional:
+        return Resource("ipv6", istart, iend, plen, str(net), (iend - istart + 1) // V6_EQUIV_UNIT)
+    # Legacy formula, kept verbatim: anything longer than a /64 counts as one /64 here.
+    equiv = (iend - istart + 1) / V6_EQUIV_UNIT
     return Resource(
-        "ipv6", istart, iend, net.prefixlen, str(net), (iend - istart + 1) // V6_EQUIV_UNIT
+        "ipv6", istart, iend, plen, str(net), equiv, 2 ** (64 - plen) if plen <= 64 else 0
     )
 
 
@@ -54,9 +62,10 @@ def from_delegated(rtype: str, block: str, length: int) -> Resource | None:
         else:
             pfxlen = None
             prefix = f"{block}-{IPv4Address(iend)}"
-        return Resource("ipv4", istart, iend, pfxlen, prefix, length // V4_EQUIV_UNIT)
+        # Legacy numres formula: any partial /24 counts as one.
+        return Resource("ipv4", istart, iend, pfxlen, prefix, (iend - istart) // V4_EQUIV_UNIT + 1)
     if rtype == "ipv6":
-        return _ipv6(IPv6Network(f"{block}/{length}", strict=False))
+        return _ipv6(IPv6Network(f"{block}/{length}", strict=False), fractional=False)
     if rtype == "asn":
         istart = int(block)
         return Resource("asn", istart, istart + length - 1, None, "na/asn", length)
@@ -70,15 +79,17 @@ def from_prefix(pfx: str | None) -> Resource:
     family = "ipv6" if ":" in pfx else "ipv4"
     try:
         if family == "ipv6":
-            return _ipv6(IPv6Network(pfx, strict=False))
+            return _ipv6(IPv6Network(pfx, strict=False), fractional=True)
         net = IPv4Network(pfx, strict=False)
     except (AddressValueError, NetmaskValueError, ValueError):
-        return Resource(f"bad{family}", -1, -1, -1, pfx, 0)
+        return Resource(f"bad{family}", -1, -1, -1, pfx, 0, 0)
+    slash24s = net.num_addresses // V4_EQUIV_UNIT
     return Resource(
         "ipv4",
         int(net.network_address),
         int(net.broadcast_address),
         net.prefixlen,
         pfx,
-        net.num_addresses // V4_EQUIV_UNIT,
+        slash24s,
+        slash24s,
     )

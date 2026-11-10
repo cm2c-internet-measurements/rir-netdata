@@ -12,7 +12,7 @@ from rir_netdata.addr import from_prefix
 from rir_netdata.sources import Tick, ticking
 
 SRC_COLS = ("origin_as", "prefix", "maxlen", "ta")
-OUT_COLS = (*SRC_COLS, "origin_as2", "istart", "iend", "type", "pfxlen", "equiv")
+OUT_COLS = (*SRC_COLS, "origin_as2", "istart", "iend", "type", "pfxlen", "equiv", "equiv2")
 
 
 def origin_as2(origin_as: str) -> str:
@@ -22,7 +22,8 @@ def origin_as2(origin_as: str) -> str:
 
 def _derive(row) -> tuple:
     res = from_prefix(row.prefix)
-    return (*row, origin_as2(row.origin_as), res.istart, res.iend, res.type, res.pfxlen, res.equiv)
+    derived = (res.istart, res.iend, res.type, res.pfxlen, res.equiv, res.equiv2)
+    return (*row, origin_as2(row.origin_as), *derived)
 
 
 def table(path: Path) -> petl.Table:

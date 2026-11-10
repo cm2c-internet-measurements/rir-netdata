@@ -22,8 +22,14 @@ class TestDelegatedIPv4:
         assert r.prefix == "10.0.1.0-10.0.2.255"
         assert r.pfxlen is None
 
-    def test_sub_24_equiv_floors_to_zero(self):
-        assert from_delegated("ipv4", "10.0.0.0", 128).equiv == 0
+    def test_sub_24_counts_as_one_like_legacy(self):
+        assert from_delegated("ipv4", "10.0.0.0", 128).equiv == 1
+
+    def test_partial_24_rounds_up_like_legacy(self):
+        assert from_delegated("ipv4", "10.0.0.0", 384).equiv == 2
+
+    def test_no_equiv2(self):
+        assert from_delegated("ipv4", "10.0.0.0", 256).equiv2 is None
 
     def test_single_24(self):
         r = from_delegated("ipv4", "10.0.0.0", 256)
@@ -68,10 +74,11 @@ def test_unknown_type_raises():
 class TestPrefix:
     def test_ipv4(self):
         r = from_prefix("200.7.84.0/23")
-        assert r == Resource("ipv4", 3355923456, 3355923967, 23, "200.7.84.0/23", 2)
+        assert r == Resource("ipv4", 3355923456, 3355923967, 23, "200.7.84.0/23", 2, 2)
 
     def test_ipv4_sub_24(self):
-        assert from_prefix("200.7.84.0/25").equiv == 0
+        r = from_prefix("200.7.84.0/25")
+        assert (r.equiv, r.equiv2) == (0, 0)
 
     def test_ipv4_host_bits_tolerated(self):
         r = from_prefix("10.0.0.1/24")
@@ -79,19 +86,33 @@ class TestPrefix:
 
     def test_ipv6(self):
         r = from_prefix("2001:13c7:7000::/36")
-        assert (r.type, r.pfxlen, r.equiv) == ("ipv6", 36, 0)
+        assert (r.type, r.pfxlen, r.equiv, r.equiv2) == ("ipv6", 36, 0.0625, 2**28)
         assert r.istart == 0x200113C770000000
         assert r.iend == 0x200113C77FFFFFFF
 
     def test_ipv6_outside_global_unicast_keeps_pfxlen(self):
-        assert from_prefix("fc00::/7") == Resource("ipv6", 0, 0, 7, "fc00::/7", 0)
+        assert from_prefix("fc00::/7") == Resource("ipv6", 0, 0, 7, "fc00::/7", 0, 0)
+
+    @pytest.mark.parametrize(
+        ("pfx", "equiv", "equiv2"),
+        [
+            ("2001:db8::/32", 1.0, 2**32),
+            ("2001:db8:1::/48", 1.52587890625e-05, 65536),  # value seen in the legacy db
+            ("2001:db8:1:1::/64", 2**-32, 1),
+            ("2001:db8:1:1::/96", 2**-32, 0),  # legacy quirk: >/64 counts as one /64
+            ("2001:db8::1/128", 2**-32, 0),
+        ],
+    )
+    def test_ipv6_roa_equiv_fraction_and_equiv2(self, pfx, equiv, equiv2):
+        r = from_prefix(pfx)
+        assert (r.equiv, r.equiv2) == (equiv, equiv2)
 
     @pytest.mark.parametrize(
         ("pfx", "kind"),
         [("IP Prefix", "badipv4"), ("300.0.0.0/8", "badipv4"), ("2001:zz::/32", "badipv6")],
     )
     def test_bad(self, pfx, kind):
-        assert from_prefix(pfx) == Resource(kind, -1, -1, -1, pfx, 0)
+        assert from_prefix(pfx) == Resource(kind, -1, -1, -1, pfx, 0, 0)
 
     @pytest.mark.parametrize("pfx", ["", None])
     def test_empty(self, pfx):

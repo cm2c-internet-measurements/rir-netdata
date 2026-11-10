@@ -18,7 +18,8 @@ DDL = {
     "roadata": (
         "CREATE TABLE roadata (id INTEGER PRIMARY KEY, origin_as text, prefix text, maxlen integer,"
         " ta text, origin_as2 VARCHAR(10), istart UNSIGNED BIG INT, iend UNSIGNED BIG INT,"
-        " type VARCHAR(5), pfxlen INTEGER, equiv INTEGER, cc CHAR(2), origin_as_cc CHAR(2));"
+        " type VARCHAR(5), pfxlen INTEGER, equiv INTEGER, cc CHAR(2), origin_as_cc CHAR(2),"
+        " equiv2 INTEGER);"
     ),
     "riswhois": (
         "CREATE TABLE riswhois (id INTEGER PRIMARY KEY, origin_as text, prefix text,"

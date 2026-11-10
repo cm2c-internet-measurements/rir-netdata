@@ -46,16 +46,15 @@ Only the `latest` snapshot of each source is supported. A run is "today's view o
 - Parse records `registry|cc|type|start|value|date|status|opaque-id[|extensions…]`. Only the first 8 fields are used.
 - **Skip non-data lines**: comments (`#`), the version header line (`2|<registry>|<serial>|…`) and summary lines (`<registry>|*|<type>|*|<count>|summary`). The header's serial/date is recorded in `meta`.
 - Derived columns:
-  - **ipv4:** `istart` = integer value of `start`; `iend = istart + value - 1`; `prefix` = CIDR (`a.b.c.d/n`) when the block is CIDR-aligned (count is a power of two and start is aligned to it), otherwise the inclusive range string `a.b.c.d-e.f.g.h`; `equiv` = size in /24 equivalents.
-  - **ipv6:** `istart`/`iend` = network/last address **shifted right 64 bits** (units of /64); `prefix` = `start/value`; `equiv` = size in /32 equivalents.
-  - **`equiv` rounding (all tables):** integer **floor**, so blocks smaller than one unit (e.g. an IPv4 /25 or an IPv6 /48) get `0`.
+  - **ipv4:** `istart` = integer value of `start`; `iend = istart + value - 1`; `prefix` = CIDR (`a.b.c.d/n`) when the block is CIDR-aligned (count is a power of two and start is aligned to it), otherwise the inclusive range string `a.b.c.d-e.f.g.h`; `equiv` = size in /24 equivalents (§5.6).
+  - **ipv6:** `istart`/`iend` = network/last address **shifted right 64 bits** (units of /64); `prefix` = `start/value`; `equiv` = size in /32 equivalents (§5.6).
   - **asn:** `istart` = first ASN; `iend = istart + value - 1` (**inclusive**); `prefix` = literal `'na/asn'`; `equiv` = `value`.
 
 ### 4.2 Routinator CSV → `roadata`
 
 - Skip the header row.
 - `origin_as` is kept as given (e.g. `AS28000`). `origin_as2` is the numeric part (`28000`).
-- Derived columns: `istart`, `iend`, `type`, `pfxlen` and `equiv` follow the same rules as 4.1.
+- Derived columns: `istart`, `iend`, `type` and `pfxlen` follow the same rules as 4.1. `equiv` and `equiv2` follow §5.6.
 - Unparseable prefixes get `type='badipv4'`/`'badipv6'` and `istart=iend=pfxlen=-1`, and are logged. This is the legacy behavior, kept.
 
 ### 4.3 RIS whois dumps → `riswhois`
@@ -96,7 +95,7 @@ CREATE INDEX numres_type_range ON numres (type, istart, iend);
 ```sql
 CREATE TABLE roadata (id INTEGER PRIMARY KEY, origin_as text, prefix text, maxlen integer, ta text,
   origin_as2 VARCHAR(10), istart UNSIGNED BIG INT, iend UNSIGNED BIG INT, type VARCHAR(5), pfxlen INTEGER,
-  equiv INTEGER, cc CHAR(2), origin_as_cc CHAR(2));
+  equiv INTEGER, cc CHAR(2), origin_as_cc CHAR(2), equiv2 INTEGER);
 ```
 
 ### 5.3 `riswhois`
@@ -125,6 +124,22 @@ CREATE TABLE meta (source text, url text, fetched_at_utc text, source_serial tex
 
 All ranges are **inclusive**. Values must fit in SQLite's signed 64-bit integer, which is why IPv6 is stored in /64 units.
 
+### 5.6 `equiv` and `equiv2`
+
+`equiv` reproduces the legacy formula of each table **exactly**, so existing analyst scripts keep giving the same numbers. `n` is `iend - istart + 1` in the table's units (§5.5).
+
+| Table | Type | `equiv` | Example |
+|---|---|---|---|
+| `numres` | ipv4 | `(iend - istart) // 256 + 1`: any partial /24 counts as one | /25 → 1, /16 → 256 |
+| `numres` | ipv6 | `n // 2**32`, floor | /48 → 0, /32 → 1 |
+| `numres` | asn | count of ASNs | |
+| `roadata` | ipv4 | `n // 256`, floor | /25 → 0, /22 → 4 |
+| `roadata` | ipv6 | `n / 2**32` as a **float**; 0 outside `2000::/3` | /48 → 1.52587890625e-05 |
+
+The roadata IPv6 formula counts anything longer than a /64 as one /64, so a /128 gives `2**-32`. That's a legacy quirk, kept on purpose.
+
+`roadata.equiv2` (new) is the exact integer size. For **IPv4** it is the number of whole /24s, the same as `equiv`. For **IPv6** it is the number of whole **/64s**: `2**(64 - pfxlen)`, or 0 for prefixes longer than /64 and for anything outside `2000::/3`. So a /48 is 65536, a /32 is 4294967296 and a /128 is 0. Bad prefixes get 0. `equiv2` is the last column, so positional `SELECT *` consumers are unaffected.
+
 ## 6. Operational behavior
 
 - **CLI:** `rir-netdata get [--source delegated|rpki|riswhois|all] [--rir lacnic|arin|ripencc|afrinic|apnic|all] [--output-dir var] [--basename netdata] [--config FILE]`. It uses rich progress and status output.
@@ -146,7 +161,7 @@ All ranges are **inclusive**. Values must fit in SQLite's signed 64-bit integer,
 8. RIS IPv6 outside `2000::/3`: `pfxlen` is now filled in (legacy set it to 0).
 9. The output filename date is the run's UTC date. There is no `--date` option, because it only ever applied to one of the three sources.
 10. IPv4 `prefix` for delegations that aren't CIDR-aligned is a range string `a.b.c.d-e.f.g.h`, so `prefix` never claims space that wasn't delegated. Legacy wrote a CIDR derived from `log2(count)`.
-11. `equiv` is an integer floor everywhere. Legacy was inconsistent: a delegated IPv4 /25 gave 1, a roadata /25 gave 0, and roadata IPv6 was a float.
+11. `equiv` is unchanged from legacy in every table, including its per-table inconsistencies (§5.6). Floor rounding everywhere was decided and then reverted on 2026-11-10, because it zeroed 81% of IPv6 ROAs and would break existing scripts. The new `roadata.equiv2` column gives an exact integer size instead (/24s for IPv4, /64s for IPv6).
 12. `numres` has an index on `(type, istart, iend)`.
 13. IPv6 global unicast is tested with real `2000::/3` containment. Legacy tested `prefix.startswith("2")`, which wrongly zeroed `3xxx:` prefixes and computed values for short forms like `2a0::` (= `02a0::`). This affected 4 RIS rows on 2026-11-10.
 14. `roadata.cc` and `roadata.origin_as_cc` actually exist in the published file. The legacy README documented them, but the production databases never had these columns, because the manual enrichment SQL was never run there.
@@ -155,4 +170,4 @@ All ranges are **inclusive**. Values must fit in SQLite's signed 64-bit integer,
 
 None at the moment.
 
-Resolved on 2026-11-10: the IPv4 range-string `prefix`, floor rounding for `equiv`, and the `numres` index. See §7 items 10–12.
+Resolved on 2026-11-10: the IPv4 range-string `prefix` and the `numres` index (§7 items 10 and 12). `equiv` keeps the legacy formulas, and the new column `equiv2` gives exact integer sizes (§5.6, §7 item 11).

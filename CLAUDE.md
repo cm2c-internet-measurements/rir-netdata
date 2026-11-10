@@ -40,7 +40,7 @@ src/rir_netdata/
   cli.py          # typer app
   config.py       # defaults + TOML override (all source URLs live here)
   fetch.py        # cached downloads with tenacity retries
-  addr.py         # prefix → istart/iend/type/pfxlen/equiv (single implementation, shared)
+  addr.py         # prefix → istart/iend/type/pfxlen/equiv/equiv2 (single implementation, shared)
   sources/        # delegated.py, rpki.py, riswhois.py — parse + derive, one per source
   enrich.py       # roadata cc / origin_as_cc
   progress.py     # rich progress bars (downloads, row loads, index, enrichment)
@@ -61,7 +61,7 @@ tests/
 
 - Delegated files have a version header line, `summary` lines and `#` comments. Skip them all, and record the header serial in `meta`.
 - An IPv4 delegated `value` is an address **count** and isn't always a power of two. Compute `iend` from the count, not from a prefix length. If the block isn't CIDR-aligned, `prefix` is a range string `a.b.c.d-e.f.g.h`.
-- `equiv` is always an integer floor, so sub-unit blocks get `0`.
+- `equiv` copies the **legacy formula of each table exactly** (SPEC §5.6). The formulas aren't consistent across tables, on purpose, for compatibility. Don't "fix" them. `roadata.equiv2` is the exact integer size (/24s or /64s).
 - The delegated `opaque-id` (column `orgid`) is a string, but the DDL says `integer`, so SQLite stores LACNIC's all-digit ids as integers and everyone else's as text. Keep it that way, because it's the contract.
 - `available` rows have 7 fields (no opaque-id), and `cc`/`date` are often empty strings.
 - The Routinator CSV has a header row, and `origin_as` looks like `AS28000`.
