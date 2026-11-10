@@ -1,75 +1,27 @@
-venv_datasets
-.swp
-.idea
-# Mac
-.DS_Store
-doc/.DS_Store
-tmp/*.db
-tmp/*.txt
-tmp/*.html
-tmp
-etc/airflow/logs
-etc/airflow/airflow.db
-
-# Byte-compiled / optimized / DLL files
+# Python / uv
 __pycache__/
 *.py[cod]
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-env/
+.venv/
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib64/
-parts/
-sdist/
-var/
 *.egg-info/
-.installed.cfg
-*.egg
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
+# Tools
+.pytest_cache/
+.ruff_cache/
 .coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*,cover
+htmlcov/
 
-# Translations
-*.mo
-*.pot
+# Pipeline output and download cache (their README.md files are tracked)
+var/*
+!var/README.md
+tmp/*
+!tmp/README.md
+*.db
+*.db.gz
 
-# Django stuff:
-*.log
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-.spyproject/
-.vscode
-*.csv
-Pipfile.lock
-__pypackages__
-.pdm.toml
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
