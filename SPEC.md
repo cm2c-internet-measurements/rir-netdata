@@ -163,9 +163,50 @@ The roadata IPv6 formula counts anything longer than a /64 as one /64, so a /128
 
 `roadata.equiv2` (new) is the exact integer size. For **IPv4** it is the number of whole /24s, the same as `equiv`. For **IPv6** it is the number of whole **/64s**: `2**(64 - pfxlen)`, or 0 for prefixes longer than /64 and for anything outside `2000::/3`. So a /48 is 65536, a /32 is 4294967296 and a /128 is 0. Bad prefixes get 0. `equiv2` is the last column, so positional `SELECT *` consumers are unaffected.
 
+### 5.7 Exports (since 2.1, issues #7, #10, #11)
+
+The SQLite database is always produced and remains the source of truth. Exports are optional copies of it, in other formats, requested with `get --export …` or made afterwards from any existing db with `rir-netdata export DB --format …`.
+
+| Format | `--export` / `--format` value | Output | Status |
+| --- | --- | --- | --- |
+| Parquet | `parquet` | `<db stem>/<table>.parquet`, one file per table, zstd | implemented (#10) |
+| CSV | `csv` | `<db stem>/<db stem>.csv.tar.gz`, containing `<table>.csv` per table | implemented (#11) |
+| JSON Lines | `jsonl` | `<db stem>/<db stem>.jsonl.tar.gz` | planned (#12) |
+| DuckDB | `duckdb` | `<db stem>/<db stem>.duckdb` | planned (#13) |
+| Compressed SQLite | `sqlite.gz` | `<db stem>.db.gz`, next to the `.db` | planned (#14) |
+
+`<db stem>` is the database file name without `.db`, so `var/netdata-20261110.db` exports into `var/netdata-20261110/`. Every table present in the db is exported, `meta` included.
+
+**Typed schema.** Exports have one type per column, unlike SQLite. Values are cleaned on the way out:
+
+- empty strings become NULL;
+- `numres.date` `''` and `00000000` (stored as 0) become NULL;
+- `orgid` is always a string;
+- `origin_as2` is an integer.
+
+Columns not listed below, e.g. from a legacy db, are exported as VARCHAR. In a legacy db, a value that doesn't fit its column's type, such as the imported delegated summary lines or the Routinator header row, is exported as NULL and counted in a warning.
+
+| Table | Column and type |
+| --- | --- |
+| `numres` | `id` BIGINT · `rir` VARCHAR · `cc` VARCHAR · `type` VARCHAR · `block` VARCHAR · `length` BIGINT · `date` INTEGER · `status` VARCHAR · `orgid` VARCHAR · `istart` BIGINT · `iend` BIGINT · `prefix` VARCHAR · `equiv` BIGINT |
+| `roadata` | `id` BIGINT · `origin_as` VARCHAR · `prefix` VARCHAR · `maxlen` INTEGER · `ta` VARCHAR · `origin_as2` BIGINT · `istart` BIGINT · `iend` BIGINT · `type` VARCHAR · `pfxlen` INTEGER · `equiv` DOUBLE · `cc` VARCHAR · `origin_as_cc` VARCHAR · `equiv2` BIGINT |
+| `riswhois` | `id` BIGINT · `origin_as` VARCHAR · `prefix` VARCHAR · `viewed_by` INTEGER · `istart` BIGINT · `iend` BIGINT · `type` VARCHAR · `pfxlen` INTEGER · `rovstatus` VARCHAR · `rovreason` VARCHAR · `rov_roas` INTEGER |
+| `meta` | `source` VARCHAR · `url` VARCHAR · `fetched_at_utc` VARCHAR · `source_serial` VARCHAR · `row_count` BIGINT · `sha256` VARCHAR · `tool_version` VARCHAR · `run_started_at_utc` VARCHAR |
+
+**CSV dialect:**
+
+- UTF-8, with a header row;
+- `,` as the delimiter and `\n` line endings;
+- RFC 4180 quoting, applied only when needed;
+- **an empty field means NULL**. This is lossless, because no exported value is an empty string.
+
+**How they're made.** Python streams each table out of SQLite with the typed cleanup into CSV. DuckDB reads those CSVs with the explicit types above and writes Parquet. No DuckDB extension and no network access are needed.
+
+**Atomicity.** Exports are staged in a temp directory next to their destination. A run publishes the export directory and the `.db` only when **everything**, every requested format included, has succeeded. If an export fails, nothing is published, not even the `.db`, and the run exits non-zero. A rerun on the same day replaces the earlier export directory.
+
 ## 6. Operational behavior
 
-- **CLI:** `rir-netdata get [--source delegated|rpki|riswhois|all] [--rir lacnic|arin|ripencc|afrinic|apnic|all] [--output-dir var] [--basename netdata] [--config FILE]`. It uses rich progress and status output.
+- **CLI:** `rir-netdata get [--source delegated|rpki|riswhois|all] [--rir lacnic|arin|ripencc|afrinic|apnic|all] [--output-dir var] [--basename netdata] [--config FILE] [--export FORMATS]`, and `rir-netdata export DB --format FORMATS [--output-dir DIR]` (§5.7). It uses rich progress and status output.
 - **Config:** built-in defaults, optionally overridden by a TOML file (`--config`). All source URLs, retry limits and the cache directory are configurable.
 - **Retries:** every download uses `tenacity` with exponential backoff. Attempts and maximum wait come from config.
 - **Atomicity:** the run builds into a temp file next to the target. If every requested source and step succeeds, the temp file is renamed into place. Otherwise the temp file is deleted, the run exits non-zero, and no partial db is ever published.
@@ -189,6 +230,7 @@ The roadata IPv6 formula counts anything longer than a /64 as one /64, so a /128
 13. IPv6 global unicast is tested with real `2000::/3` containment. Legacy tested `prefix.startswith("2")`, which wrongly zeroed `3xxx:` prefixes and computed values for short forms like `2a0::` (= `02a0::`). This affected 4 RIS rows on 2026-11-10.
 14. `roadata.cc` and `roadata.origin_as_cc` actually exist in the published file. The legacy README documented them, but the production databases never had these columns, because the manual enrichment SQL was never run there.
 15. `riswhois.rovstatus`, `rovreason` and `rov_roas` (since 2.1, issue #8) are new. Legacy had no route origin validation (§4.5).
+16. Exports to Parquet and CSV (since 2.1, §5.7) are new. Legacy only produced the SQLite file.
 
 ## 8. Open questions
 
