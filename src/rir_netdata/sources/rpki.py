@@ -9,6 +9,7 @@ from pathlib import Path
 import petl
 
 from rir_netdata.addr import from_prefix
+from rir_netdata.sources import Tick, ticking
 
 SRC_COLS = ("origin_as", "prefix", "maxlen", "ta")
 OUT_COLS = (*SRC_COLS, "origin_as2", "istart", "iend", "type", "pfxlen", "equiv")
@@ -33,8 +34,8 @@ def table(path: Path) -> petl.Table:
     )
 
 
-def load(conn: sqlite3.Connection, path: Path) -> int:
+def load(conn: sqlite3.Connection, path: Path, tick: Tick | None = None) -> int:
     """Append the ROA export to ``roadata``; return the number of rows loaded."""
     before = conn.execute("SELECT count(*) FROM roadata").fetchone()[0]
-    petl.appenddb(table(path), conn, "roadata", commit=False)
+    petl.appenddb(ticking(table(path), tick), conn, "roadata", commit=False)
     return conn.execute("SELECT count(*) FROM roadata").fetchone()[0] - before

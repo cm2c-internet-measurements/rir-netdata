@@ -8,6 +8,7 @@ from pathlib import Path
 import petl
 
 from rir_netdata.addr import from_delegated
+from rir_netdata.sources import Tick, ticking
 
 SRC_COLS = ("rir", "cc", "type", "block", "length", "date", "status", "orgid")
 OUT_COLS = (*SRC_COLS, "istart", "iend", "prefix", "equiv")
@@ -75,10 +76,10 @@ def table(path: Path) -> petl.Table:
     )
 
 
-def load(conn: sqlite3.Connection, path: Path) -> tuple[Preamble, int]:
+def load(conn: sqlite3.Connection, path: Path, tick: Tick | None = None) -> tuple[Preamble, int]:
     """Append one RIR's file to ``numres``; return its preamble and the number of rows loaded."""
     pre = read_preamble(path)
-    petl.appenddb(table(path), conn, "numres", commit=False)
+    petl.appenddb(ticking(table(path), tick), conn, "numres", commit=False)
     counts = dict(
         conn.execute(
             "SELECT type, count(*) FROM numres WHERE rir = ? GROUP BY type", (pre.registry,)

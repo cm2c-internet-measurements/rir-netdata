@@ -141,7 +141,7 @@ All ranges are **inclusive**. Values must fit in SQLite's signed 64-bit integer,
 3. RIS dump comment and header lines are no longer imported as junk rows.
 4. ASN `iend` is inclusive (`start + count - 1`). `rir-netdatalib` already does this; old docs and builds did not.
 5. IPv4 `iend = istart + count - 1`, which is correct for non-power-of-two allocations. Legacy derived it from `log2(count)`.
-6. CC enrichment matches on address family, so an IPv6 ROA can no longer match an IPv4 range. It also really writes `'ZZ'` on no match: legacy set `'ZZ'` and then overwrote it with NULL.
+6. CC enrichment really writes `'ZZ'` on no match: legacy set `'ZZ'` and then overwrote it with NULL. It also matches on the exact address family. Legacy only excluded ASNs, which was safe in practice because IPv4 and IPv6 values never collide numerically, so this is a robustness fix rather than a change in output.
 7. CC enrichment covers all trust anchors, not only LACNIC.
 8. RIS IPv6 outside `2000::/3`: `pfxlen` is now filled in (legacy set it to 0).
 9. The output filename date is the run's UTC date. There is no `--date` option, because it only ever applied to one of the three sources.

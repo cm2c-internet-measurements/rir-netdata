@@ -101,3 +101,19 @@ def test_rpki_failure_writes_nothing(serve, tmp_path):
     serve.add(config.DEFAULT_RPKI["url"])
     assert _get().exit_code == 1
     assert not list((tmp_path / "out").glob("*"))
+
+
+def test_full_run_enriches_roadata(serve, tmp_path):
+    assert _get().exit_code == 0
+    with sqlite3.connect(_db(tmp_path)) as conn:
+        assert conn.execute("SELECT count(*) FROM roadata WHERE cc IS NULL").fetchone()[0] == 0
+        cc = conn.execute("SELECT cc FROM roadata WHERE prefix = '2.152.0.0/22'").fetchone()[0]
+        assert cc == "GT"  # lacnic|GT|ipv4|2.152.0.0|1024|...|allocated in the fixture
+
+
+def test_rpki_only_run_skips_enrichment(serve, tmp_path):
+    result = _get("--source", "rpki")
+    assert result.exit_code == 0, result.output
+    assert "left NULL" in result.output
+    with sqlite3.connect(_db(tmp_path)) as conn:
+        assert conn.execute("SELECT count(*) FROM roadata WHERE cc IS NOT NULL").fetchone()[0] == 0

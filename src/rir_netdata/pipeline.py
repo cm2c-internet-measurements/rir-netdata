@@ -8,16 +8,16 @@ from enum import StrEnum
 from pathlib import Path
 
 from rich.console import Console
-from rich.progress import BarColumn, DownloadColumn, Progress, TextColumn, TransferSpeedColumn
 from rich.table import Table
 
-from rir_netdata import __version__, db
+from rir_netdata import __version__, db, enrich, progress
 from rir_netdata.config import Config
 from rir_netdata.fetch import Fetched, fetch, make_client
-from rir_netdata.sources import delegated, riswhois, rpki
+from rir_netdata.sources import Tick, delegated, riswhois, rpki
 
-# A loader appends one downloaded file to its table and returns (source serial, rows loaded).
-Loader = Callable[[sqlite3.Connection, Path], tuple[str | None, int]]
+# A loader appends one downloaded file to its table, reporting progress through the Tick, and
+# returns (source serial, rows loaded).
+Loader = Callable[[sqlite3.Connection, Path, Tick], tuple[str | None, int]]
 
 
 class Source(StrEnum):
@@ -37,14 +37,14 @@ class Job:
     load: Loader
 
 
-def _load_delegated(conn: sqlite3.Connection, path: Path) -> tuple[str | None, int]:
-    pre, n = delegated.load(conn, path)
+def _load_delegated(conn: sqlite3.Connection, path: Path, tick: Tick) -> tuple[str | None, int]:
+    pre, n = delegated.load(conn, path, tick)
     return pre.serial, n
 
 
-def _no_serial(load: Callable[[sqlite3.Connection, Path], int]) -> Loader:
+def _no_serial(load: Callable[[sqlite3.Connection, Path, Tick], int]) -> Loader:
     """Adapt a loader for sources whose files carry no serial."""
-    return lambda conn, path: (None, load(conn, path))
+    return lambda conn, path, tick: (None, load(conn, path, tick))
 
 
 def plan(cfg: Config, source: Source, rirs: list[str]) -> list[Job]:
@@ -96,14 +96,8 @@ def _iso(when: datetime) -> str:
 
 
 def _download_all(cfg: Config, jobs: list[Job], console: Console) -> list[Fetched]:
-    columns = (
-        TextColumn("[cyan]{task.description}"),
-        BarColumn(),
-        DownloadColumn(),
-        TransferSpeedColumn(),
-    )
     out = []
-    with make_client() as client, Progress(*columns, console=console, transient=True) as progress:
+    with make_client() as client, progress.downloads(console) as bars:
         for job in jobs:
             got = fetch(
                 client,
@@ -111,12 +105,60 @@ def _download_all(cfg: Config, jobs: list[Job], console: Console) -> list[Fetche
                 cfg.cache_dir / job.cache_name,
                 max_age=job.max_age,
                 retry_cfg=cfg.retry,
-                progress=progress,
+                progress=bars,
             )
-            how = "[dim]cached[/]" if got.from_cache else "[green]downloaded[/]"
+            how = "[dim]cached    [/]" if got.from_cache else "[green]downloaded[/]"
             console.print(f"  {how} {job.name}")
             out.append(got)
     return out
+
+
+def _build(
+    conn: sqlite3.Connection,
+    jobs: list[Job],
+    fetched: list[Fetched],
+    started: str,
+    console: Console,
+) -> list[db.MetaRow]:
+    tables = list(dict.fromkeys(j.table for j in jobs))
+    for table in tables:
+        db.create_table(conn, table)
+
+    meta = []
+    with progress.rows(console) as bars:
+        for job, got in zip(jobs, fetched, strict=True):
+            with progress.task(bars, f"load {job.name}", progress.count_lines(got.path)) as tick:
+                serial, rows = job.load(conn, got.path, tick)
+            meta.append(
+                db.MetaRow(
+                    job.name,
+                    got.url,
+                    got.fetched_at_utc,
+                    serial,
+                    rows,
+                    got.sha256,
+                    __version__,
+                    started,
+                )
+            )
+
+        for table in (t for t in tables if t in db.INDEXES):
+            with progress.task(bars, f"index {table}", 1) as tick:
+                db.create_indexes(conn, table)
+                tick(1)
+
+        if "roadata" in tables:
+            if "numres" in tables:
+                with progress.task(bars, "enrich roadata cc", enrich.count(conn)) as tick:
+                    enrich.run(conn, tick)
+            else:
+                console.print(
+                    "[yellow]warning:[/] numres not in this run; roadata.cc and "
+                    "roadata.origin_as_cc left NULL"
+                )
+
+    db.write_meta(conn, meta)
+    return meta
 
 
 def run(cfg: Config, source: Source, rirs: list[str], target: Path, console: Console) -> Path:
@@ -128,31 +170,8 @@ def run(cfg: Config, source: Source, rirs: list[str], target: Path, console: Con
     fetched = _download_all(cfg, jobs, console)
 
     console.rule("[bold]Building database")
-    meta = []
     with db.build(target) as conn:
-        tables = list(dict.fromkeys(j.table for j in jobs))
-        for table in tables:
-            db.create_table(conn, table)
-        for job, got in zip(jobs, fetched, strict=True):
-            with console.status(f"loading {job.name}…"):
-                serial, rows = job.load(conn, got.path)
-            console.print(f"  [green]✓[/] {job.name}: {rows:,} rows")
-            meta.append(
-                db.MetaRow(
-                    job.name,
-                    got.url,
-                    got.fetched_at_utc,
-                    serial,
-                    rows,
-                    got.sha256,
-                    __version__,
-                    _iso(started),
-                )
-            )
-        for table in tables:
-            with console.status(f"indexing {table}…"):
-                db.create_indexes(conn, table)
-        db.write_meta(conn, meta)
+        meta = _build(conn, jobs, fetched, _iso(started), console)
 
     _summary(console, meta, target)
     return target

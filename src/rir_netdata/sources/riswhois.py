@@ -6,6 +6,7 @@ from pathlib import Path
 import petl
 
 from rir_netdata.addr import from_prefix
+from rir_netdata.sources import Tick, ticking
 
 SRC_COLS = ("origin_as", "prefix", "viewed_by")
 OUT_COLS = (*SRC_COLS, "istart", "iend", "type", "pfxlen")
@@ -31,8 +32,8 @@ def table(path: Path) -> petl.Table:
     )
 
 
-def load(conn: sqlite3.Connection, path: Path) -> int:
+def load(conn: sqlite3.Connection, path: Path, tick: Tick | None = None) -> int:
     """Append one dump to ``riswhois``; return the number of rows loaded."""
     before = conn.execute("SELECT count(*) FROM riswhois").fetchone()[0]
-    petl.appenddb(table(path), conn, "riswhois", commit=False)
+    petl.appenddb(ticking(table(path), tick), conn, "riswhois", commit=False)
     return conn.execute("SELECT count(*) FROM riswhois").fetchone()[0] - before

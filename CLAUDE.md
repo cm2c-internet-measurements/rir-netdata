@@ -33,7 +33,7 @@ uv run pytest                             # tests (no network)
 uv run ruff check . && uv run ruff format .
 ```
 
-## Planned layout
+## Layout
 
 ```
 src/rir_netdata/
@@ -43,6 +43,8 @@ src/rir_netdata/
   addr.py         # prefix → istart/iend/type/pfxlen/equiv (single implementation, shared)
   sources/        # delegated.py, rpki.py, riswhois.py — parse + derive, one per source
   enrich.py       # roadata cc / origin_as_cc
+  progress.py     # rich progress bars (downloads, row loads, index, enrichment)
+  pipeline.py     # orchestration: download all, then build atomically
   db.py           # DDL, atomic temp-file build + rename, meta table
 tests/
 ```
