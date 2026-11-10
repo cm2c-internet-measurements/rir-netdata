@@ -66,6 +66,21 @@ The staged plan for the Python 3 rewrite described in `SPEC.md`. Each stage ends
 
 ## Stage 7: Parity, packaging, cleanup
 
+**Parity check: done on 2026-11-10** against the legacy `https://trantor.labs.lacnic.net/carlos/netdata/netdata-20261110.db.gz` (same date as a new run). Every difference traces to SPEC §7:
+
+- **`numres`:** legacy has 5 version-header rows and 15 summary rows (fix 1). The records for LACNIC, ARIN, RIPE and AFRINIC are identical. APNIC differs by about 35 records because legacy used the older `ftp.lacnic.net` mirror copy, while the new run uses APNIC's own server (serial 20261111).
+- **Computed columns on shared records:**
+  - ASN and IPv6: identical.
+  - IPv4: 3,771 non-CIDR blocks differ in `iend`/`prefix`, 3,360 of them also in `istart` (fixes 5 and 10). `equiv` differs for those blocks and for blocks smaller than a /24 (fix 11).
+- **`roadata`:**
+  - Legacy's single `badipv4` row is the CSV header (fix 2), and legacy has no `cc` columns (fix 14).
+  - 61 ROAs exist only in legacy and 117 only in the new run, because the Routinator snapshots were taken at different times.
+  - On the 1.03M shared ROAs, every computed column matches except IPv6 `equiv`. In legacy that was a fractional float; 192,290 rows now floor to 0 (fix 11).
+- **`riswhois`:**
+  - Legacy has 2 all-NULL rows from blank lines (fix 3).
+  - 411 rows exist only in legacy and 279 only in the new run, because the dumps were generated at different times.
+  - On the 1.59M shared rows: 4 differ in `istart`/`iend` (fix 13) and 41 in `pfxlen` (fix 8).
+
 - A full `rir-netdata get` run with a rich summary.
 - A parity check against a legacy db, if one exists (otherwise against the source summary counts). Every difference must trace to a SPEC §7 item.
 - A uv-based Dockerfile, a new Makefile (`build`/`push`/`run`/`test`), and a README rewritten from SPEC.

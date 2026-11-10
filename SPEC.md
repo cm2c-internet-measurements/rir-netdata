@@ -140,7 +140,7 @@ All ranges are **inclusive**. Values must fit in SQLite's signed 64-bit integer,
 2. The Routinator CSV header row is no longer imported as a `badipv4` row.
 3. RIS dump comment and header lines are no longer imported as junk rows.
 4. ASN `iend` is inclusive (`start + count - 1`). `rir-netdatalib` already does this; old docs and builds did not.
-5. IPv4 `iend = istart + count - 1`, which is correct for non-power-of-two allocations. Legacy derived it from `log2(count)`.
+5. IPv4 `istart` is the delegated start address and `iend = istart + count - 1`, which is correct for non-power-of-two and unaligned allocations. Legacy derived a CIDR from `log2(count)` and then masked it to a network boundary, so for 3,771 blocks (mostly ARIN) it stored a wrong `iend`, and for 3,360 of those a wrong `istart` too.
 6. CC enrichment really writes `'ZZ'` on no match: legacy set `'ZZ'` and then overwrote it with NULL. It also matches on the exact address family. Legacy only excluded ASNs, which was safe in practice because IPv4 and IPv6 values never collide numerically, so this is a robustness fix rather than a change in output.
 7. CC enrichment covers all trust anchors, not only LACNIC.
 8. RIS IPv6 outside `2000::/3`: `pfxlen` is now filled in (legacy set it to 0).
@@ -148,6 +148,8 @@ All ranges are **inclusive**. Values must fit in SQLite's signed 64-bit integer,
 10. IPv4 `prefix` for delegations that aren't CIDR-aligned is a range string `a.b.c.d-e.f.g.h`, so `prefix` never claims space that wasn't delegated. Legacy wrote a CIDR derived from `log2(count)`.
 11. `equiv` is an integer floor everywhere. Legacy was inconsistent: a delegated IPv4 /25 gave 1, a roadata /25 gave 0, and roadata IPv6 was a float.
 12. `numres` has an index on `(type, istart, iend)`.
+13. IPv6 global unicast is tested with real `2000::/3` containment. Legacy tested `prefix.startswith("2")`, which wrongly zeroed `3xxx:` prefixes and computed values for short forms like `2a0::` (= `02a0::`). This affected 4 RIS rows on 2026-11-10.
+14. `roadata.cc` and `roadata.origin_as_cc` actually exist in the published file. The legacy README documented them, but the production databases never had these columns, because the manual enrichment SQL was never run there.
 
 ## 8. Open questions
 
