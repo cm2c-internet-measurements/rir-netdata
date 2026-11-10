@@ -81,3 +81,23 @@ def test_failed_source_writes_nothing(serve, tmp_path):
 def test_bad_config_exit_code(serve, tmp_path):
     (tmp_path / "netdata.toml").write_text("bogus = 1\n")
     assert _get().exit_code == 2
+
+
+def test_full_run_builds_all_tables(serve, tmp_path):
+    result = _get()
+    assert result.exit_code == 0, result.output
+    with sqlite3.connect(_db(tmp_path)) as conn:
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert tables == {"meta", "numres", "roadata", "riswhois"}
+        meta = dict(conn.execute("SELECT source, row_count FROM meta").fetchall())
+        assert meta["rpki"] == 12
+        assert meta["riswhois-ipv4"] == 5
+        assert conn.execute("SELECT count(*) FROM riswhois").fetchone()[0] == (
+            meta["riswhois-ipv4"] + meta["riswhois-ipv6"]
+        )
+
+
+def test_rpki_failure_writes_nothing(serve, tmp_path):
+    serve.add(config.DEFAULT_RPKI["url"])
+    assert _get().exit_code == 1
+    assert not list((tmp_path / "out").glob("*"))

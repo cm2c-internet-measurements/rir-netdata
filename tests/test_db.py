@@ -1,3 +1,4 @@
+import os
 import re
 import sqlite3
 from pathlib import Path
@@ -77,3 +78,14 @@ def test_build_failure_keeps_previous_file(tmp_path):
     with pytest.raises(RuntimeError), db.build(target):
         raise RuntimeError("source failed")
     assert target.read_bytes() == b"previous"
+
+
+def test_output_respects_umask(tmp_path):
+    old = os.umask(0o022)
+    try:
+        target = tmp_path / "netdata.db"
+        with db.build(target):
+            pass
+    finally:
+        os.umask(old)
+    assert target.stat().st_mode & 0o777 == 0o644

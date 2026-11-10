@@ -49,6 +49,12 @@ class MetaRow:
     run_started_at_utc: str
 
 
+def _umask() -> int:
+    mask = os.umask(0)
+    os.umask(mask)
+    return mask
+
+
 @contextmanager
 def build(target: Path) -> Iterator[sqlite3.Connection]:
     """Yield a connection to a temp db next to ``target``; rename it into place only on success."""
@@ -62,6 +68,7 @@ def build(target: Path) -> Iterator[sqlite3.Connection]:
         yield conn
         conn.commit()
         conn.close()
+        tmp.chmod(0o666 & ~_umask())  # mkstemp creates 0600; the db is meant to be shared
         tmp.replace(target)
     except BaseException:
         conn.close()

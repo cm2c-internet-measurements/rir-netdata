@@ -14,7 +14,7 @@ from rich.table import Table
 from rir_netdata import __version__, db
 from rir_netdata.config import Config
 from rir_netdata.fetch import Fetched, fetch, make_client
-from rir_netdata.sources import delegated
+from rir_netdata.sources import delegated, riswhois, rpki
 
 # A loader appends one downloaded file to its table and returns (source serial, rows loaded).
 Loader = Callable[[sqlite3.Connection, Path], tuple[str | None, int]]
@@ -42,6 +42,11 @@ def _load_delegated(conn: sqlite3.Connection, path: Path) -> tuple[str | None, i
     return pre.serial, n
 
 
+def _no_serial(load: Callable[[sqlite3.Connection, Path], int]) -> Loader:
+    """Adapt a loader for sources whose files carry no serial."""
+    return lambda conn, path: (None, load(conn, path))
+
+
 def plan(cfg: Config, source: Source, rirs: list[str]) -> list[Job]:
     jobs = []
     if source in (Source.all, Source.delegated):
@@ -55,6 +60,29 @@ def plan(cfg: Config, source: Source, rirs: list[str]) -> list[Job]:
                 _load_delegated,
             )
             for rir in rirs
+        ]
+    if source in (Source.all, Source.rpki):
+        jobs.append(
+            Job(
+                "rpki",
+                "roadata",
+                cfg.rpki["url"],
+                "rpki-roas.csv",
+                cfg.freshness_seconds.rpki,
+                _no_serial(rpki.load),
+            )
+        )
+    if source in (Source.all, Source.riswhois):
+        jobs += [
+            Job(
+                f"riswhois-{family}",
+                "riswhois",
+                cfg.riswhois[family],
+                f"riswhoisdump.{family.replace('ip', 'IP')}.gz",
+                cfg.freshness_seconds.riswhois,
+                _no_serial(riswhois.load),
+            )
+            for family in ("ipv4", "ipv6")
         ]
     return jobs
 
