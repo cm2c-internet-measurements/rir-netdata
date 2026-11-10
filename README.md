@@ -81,6 +81,15 @@ docker build . -t opendata/rir-netdata:v2
 
 The resulting image can be run as follows:
 
-```
+Docker:
+
+```shell
 docker run -ti -v $(pwd)/var:/opt/rir-netdata/var get
 ```
+
+Podman:
+
+```shell
+podman run localhost/opendata/rir-netdata:v2
+```
+
