@@ -13,7 +13,7 @@ A batch pipeline that downloads the five RIRs' delegated-extended files, a Routi
   - `rir-netdatalib` (`lacniclabs/netdata/{delegated,riperpki,riswhois}.py`, `lacniclabs/utils/addr.py`, `lacniclabs/etc/rirconfig.py`): re-implement its behavior here.
   - `cm2c-python-commons` (`sql3load`, `getfile`): **do not port or imitate**. Use native libraries instead.
   - Local checkouts: `../rir-netdatalib`, `../cm2c-python-commons`.
-- The new package scaffold doesn't exist yet. The commands below are the target.
+- The new package in `src/rir_netdata/` builds the full database. See `PLAN.md` for what's left.
 
 ## Stack
 
@@ -23,7 +23,7 @@ A batch pipeline that downloads the five RIRs' delegated-extended files, a Routi
 - IP math: stdlib `ipaddress`. HTTP: `httpx` or `urllib`. Retries: **tenacity** decorators. Config: TOML via stdlib `tomllib`.
 - Tests: **pytest**, offline only, using small fixture files under `tests/fixtures/`. Lint/format: **ruff**.
 
-## Commands (target)
+## Commands
 
 ```sh
 uv sync                                   # install
