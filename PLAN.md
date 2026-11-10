@@ -5,7 +5,7 @@ The staged plan for the Python 3 rewrite described in `SPEC.md`. Each stage ends
 | Stage | Scope | Status |
 |---|---|---|
 | 0 | Skeleton | done |
-| 1 | Address math | todo |
+| 1 | Address math | done |
 | 2 | Output DB | todo |
 | 3 | Config + downloads | todo |
 | 4 | Delegated → `numres` | todo |
