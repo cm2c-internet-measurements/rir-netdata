@@ -6,7 +6,7 @@ The staged plan for the Python 3 rewrite described in `SPEC.md`. Each stage ends
 |---|---|---|
 | 0 | Skeleton | done |
 | 1 | Address math | done |
-| 2 | Output DB | todo |
+| 2 | Output DB | done |
 | 3 | Config + downloads | todo |
 | 4 | Delegated → `numres` | todo |
 | 5 | RPKI → `roadata`, RIS → `riswhois` | todo |
