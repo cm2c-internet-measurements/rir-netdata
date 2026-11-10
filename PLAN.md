@@ -8,7 +8,7 @@ The staged plan for the Python 3 rewrite described in `SPEC.md`. Each stage ends
 | 1 | Address math | done |
 | 2 | Output DB | done |
 | 3 | Config + downloads | done |
-| 4 | Delegated → `numres` | todo |
+| 4 | Delegated → `numres` | done |
 | 5 | RPKI → `roadata`, RIS → `riswhois` | todo |
 | 6 | CC enrichment | todo |
 | 7 | Parity, packaging, cleanup | todo |

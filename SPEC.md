@@ -83,7 +83,7 @@ A single file, by default `var/netdata-YYYYMMDD.db` (UTC date of the run). The o
 CREATE TABLE numres (id INTEGER PRIMARY KEY, rir text, cc text, type text, block text, length integer,
   date integer, status text, orgid integer, istart INTEGER, iend INTEGER, prefix VARCHAR(80), equiv INTEGER);
 ```
-`orgid` is declared `integer` for compatibility, but holds the RIR's opaque-id string. SQLite stores it as text.
+`orgid` is declared `integer` for compatibility, but holds the RIR's opaque-id. Because of SQLite type affinity, all-digit ids (LACNIC's) are stored as integers and all others (hex, UUID) as text, exactly as in legacy. Rows without an opaque-id get NULL; rows with an empty one keep `''`. No RIR currently uses all-digit ids with leading zeros, so nothing is lost.
 
 The table gets an index for range lookups. It doesn't change the visible schema:
 

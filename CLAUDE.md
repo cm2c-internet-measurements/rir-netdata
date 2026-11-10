@@ -60,7 +60,8 @@ tests/
 - Delegated files have a version header line, `summary` lines and `#` comments. Skip them all, and record the header serial in `meta`.
 - An IPv4 delegated `value` is an address **count** and isn't always a power of two. Compute `iend` from the count, not from a prefix length. If the block isn't CIDR-aligned, `prefix` is a range string `a.b.c.d-e.f.g.h`.
 - `equiv` is always an integer floor, so sub-unit blocks get `0`.
-- The delegated `opaque-id` (column `orgid`) is a string even though the DDL says `integer`.
+- The delegated `opaque-id` (column `orgid`) is a string, but the DDL says `integer`, so SQLite stores LACNIC's all-digit ids as integers and everyone else's as text. Keep it that way, because it's the contract.
+- `available` rows have 7 fields (no opaque-id), and `cc`/`date` are often empty strings.
 - The Routinator CSV has a header row, and `origin_as` looks like `AS28000`.
 - RIS dumps are gzipped, tab-separated, have comment/header lines, and `origin_as` can be an AS-set like `{1,2}`.
 - The CC enrichment must match on address family and status `allocated`/`assigned`, and default to `'ZZ'`.
