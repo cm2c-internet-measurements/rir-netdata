@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code in this repo. **`SPEC.md` is the source of truth** for what the pipeline produces. Read it before changing anything that affects the output database.
+Guidance for Claude Code in this repo. **`SPEC.md` is the source of truth** for what the pipeline produces. Read it before changing anything that affects the output database. **`PLAN.md`** holds the staged implementation plan and its status. Update it when a stage lands.
 
 ## What this is
 

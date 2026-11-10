@@ -73,3 +73,6 @@ target/
 Pipfile.lock
 __pypackages__
 .pdm.toml
+
+# uv
+.venv/
