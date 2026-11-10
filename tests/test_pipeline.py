@@ -117,3 +117,23 @@ def test_rpki_only_run_skips_enrichment(serve, tmp_path):
     assert "left NULL" in result.output
     with sqlite3.connect(_db(tmp_path)) as conn:
         assert conn.execute("SELECT count(*) FROM roadata WHERE cc IS NOT NULL").fetchone()[0] == 0
+
+
+def test_full_run_validates_riswhois(serve, tmp_path):
+    result = _get()
+    assert result.exit_code == 0, result.output
+    assert "ROV" in result.output
+    with sqlite3.connect(_db(tmp_path)) as conn:
+        nulls = conn.execute("SELECT count(*) FROM riswhois WHERE rovstatus IS NULL").fetchone()[0]
+        assert nulls == 0
+        statuses = {r[0] for r in conn.execute("SELECT DISTINCT rovstatus FROM riswhois")}
+        assert statuses <= {"valid", "invalid", "notfound"}
+
+
+def test_riswhois_only_run_skips_rov(serve, tmp_path):
+    result = _get("--source", "riswhois")
+    assert result.exit_code == 0, result.output
+    assert "rovstatus" in result.output and "left NULL" in result.output
+    with sqlite3.connect(_db(tmp_path)) as conn:
+        filled = conn.execute("SELECT count(*) FROM riswhois WHERE rovstatus IS NOT NULL")
+        assert filled.fetchone()[0] == 0

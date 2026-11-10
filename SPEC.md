@@ -62,6 +62,7 @@ Only the `latest` snapshot of each source is supported. A run is "today's view o
 - Concatenate the IPv4 and IPv6 dumps into one table. Skip comment and header lines.
 - Derived columns: `type`, `istart`, `iend` and `pfxlen` follow the rules in 4.1. No `equiv` column (legacy schema).
 - IPv6 prefixes outside `2000::/3` get `istart=iend=0`, as in legacy. `pfxlen` is still filled in (see §7).
+- `rovstatus`, `rovreason` and `rov_roas` are filled by the ROV step (§4.5).
 
 ### 4.4 Enrichment: country codes on `roadata` (built-in)
 
@@ -71,6 +72,25 @@ This step runs after `numres` and `roadata` are loaded. It covers **ROAs from ev
 - `roadata.origin_as_cc`: the `cc` of the `numres` row with `type='asn'` that contains `origin_as2`, under the same status rule.
 - If nothing matches, the value is `'ZZ'`.
 - If a run doesn't include `numres` (single-source run), the step is skipped with a warning and both columns stay NULL.
+
+### 4.5 Enrichment: RPKI route origin validation on `riswhois` (since 2.1, issue #8)
+
+This step runs after `roadata` and `riswhois` are loaded. Every `riswhois` route gets an RFC 6811 validation state, computed against **all ROAs in `roadata`, from every trust anchor**.
+
+- A ROA **covers** a route if the ROA's prefix contains the route's prefix (same address family, ROA prefix length ≤ route prefix length). A covering ROA **matches** if its ASN equals the route's origin AS, the route's prefix length is ≤ the ROA's `maxlen`, and the ASN is not 0. AS0 ROAs (RFC 6483, RFC 7607) cover routes but never match.
+- `rovstatus`:
+  - `notfound` if no ROA covers the route;
+  - `valid` if at least one covering ROA matches;
+  - `invalid` otherwise.
+- `rovreason`: NULL unless `rovstatus` is `invalid`. Then, in order of precedence:
+  1. `as_set` if the origin is an AS-set (e.g. `{40179}`). Following RFC 6811 strictly, an AS-set origin never matches, single-member sets included.
+  2. `length` if some covering ROA has the route's origin ASN but its `maxlen` is shorter than the route's prefix length.
+  3. `asn` otherwise.
+- `rov_roas`: the number of covering ROAs (0 for `notfound`). Every trust anchor and AS0 ROAs count, and duplicate ROAs under two trust anchors count twice.
+- Coverage is computed on the **real prefixes**, not on `istart`/`iend`. IPv6 `istart`/`iend` are in /64 units and can't tell apart prefixes longer than /64. Default routes and prefixes outside `2000::/3` are validated like any other; in practice no ROA covers them, so they come out `notfound`.
+- Rows whose prefix couldn't be parsed (`type` not `ipv4`/`ipv6`) get NULL in all three columns.
+- **Verified** against Routinator's validity API (`scripts/rov_crosscheck.py`): on 2026-11-10, 1,200 sampled routes agreed on status, reason and ROA count. Note that Routinator's own *description* calls a route "length"-invalid whenever no covering VRP fails on ASN alone. `rovreason` says `length` only when a covering ROA has the route's own ASN, as defined above, so with a wrong-ASN, too-short ROA we say `asn` and Routinator's text says length.
+- If a run doesn't include `roadata` (e.g. `--source riswhois`), the step is skipped with a warning and all three columns stay NULL. `notfound` would falsely claim that no ROA exists.
 
 ## 5. Output
 
@@ -102,8 +122,11 @@ CREATE TABLE roadata (id INTEGER PRIMARY KEY, origin_as text, prefix text, maxle
 
 ```sql
 CREATE TABLE riswhois (id INTEGER PRIMARY KEY, origin_as text, prefix text, viewed_by integer,
-  istart UNSIGNED BIG INT, iend UNSIGNED BIG INT, type VARCHAR(5), pfxlen INTEGER);
+  istart UNSIGNED BIG INT, iend UNSIGNED BIG INT, type VARCHAR(5), pfxlen INTEGER,
+  rovstatus text, rovreason text, rov_roas integer);
 ```
+
+The `rov*` columns were added in 2.1 and are appended last, so positional `SELECT *` consumers are unaffected.
 
 ### 5.4 `meta` (new)
 
@@ -165,6 +188,7 @@ The roadata IPv6 formula counts anything longer than a /64 as one /64, so a /128
 12. `numres` has an index on `(type, istart, iend)`.
 13. IPv6 global unicast is tested with real `2000::/3` containment. Legacy tested `prefix.startswith("2")`, which wrongly zeroed `3xxx:` prefixes and computed values for short forms like `2a0::` (= `02a0::`). This affected 4 RIS rows on 2026-11-10.
 14. `roadata.cc` and `roadata.origin_as_cc` actually exist in the published file. The legacy README documented them, but the production databases never had these columns, because the manual enrichment SQL was never run there.
+15. `riswhois.rovstatus`, `rovreason` and `rov_roas` (since 2.1, issue #8) are new. Legacy had no route origin validation (§4.5).
 
 ## 8. Open questions
 

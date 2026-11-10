@@ -24,7 +24,7 @@ DDL = {
     "riswhois": (
         "CREATE TABLE riswhois (id INTEGER PRIMARY KEY, origin_as text, prefix text,"
         " viewed_by integer, istart UNSIGNED BIG INT, iend UNSIGNED BIG INT, type VARCHAR(5),"
-        " pfxlen INTEGER);"
+        " pfxlen INTEGER, rovstatus text, rovreason text, rov_roas integer);"
     ),
     "meta": (
         "CREATE TABLE meta (source text, url text, fetched_at_utc text, source_serial text,"
