@@ -18,7 +18,7 @@ The output is **published as open data**. Its schema is a public contract: colum
 
 ### Out of scope (for now)
 
-New sources (IANA, RDAP, ASPA, BGP tables), historical/backfill runs, exports to Elastic/JSON, a whois-style query tool, and scheduling (Airflow and similar). All of these are removed from the repo; git history keeps them.
+New sources (IANA, RDAP, ASPA, BGP tables), historical/backfill runs, loading into Elasticsearch or other services (the JSON Lines export of §5.7 is a file only), a whois-style query tool, and scheduling (Airflow and similar). All of these are removed from the repo; git history keeps them.
 
 ## 3. Inputs
 
@@ -171,7 +171,7 @@ The SQLite database is always produced and remains the source of truth. Exports 
 | --- | --- | --- | --- |
 | Parquet | `parquet` | `<db stem>/<table>.parquet`, one file per table, zstd | implemented (#10) |
 | CSV | `csv` | `<db stem>/<db stem>.csv.tar.gz`, containing `<table>.csv` per table | implemented (#11) |
-| JSON Lines | `jsonl` | `<db stem>/<db stem>.jsonl.tar.gz` | planned (#12) |
+| JSON Lines | `jsonl` | `<db stem>/<db stem>.jsonl.tar.gz`, containing `<table>.jsonl` per table | implemented (#12) |
 | DuckDB | `duckdb` | `<db stem>/<db stem>.duckdb`, with every table | implemented (#13) |
 | Compressed SQLite | `sqlite.gz` | `<db stem>.db.gz`, next to the `.db` | implemented (#14) |
 
@@ -202,7 +202,9 @@ Columns not listed below, e.g. from a legacy db, are exported as VARCHAR. In a l
 - RFC 4180 quoting, applied only when needed;
 - **an empty field means NULL**. This is lossless, because no exported value is an empty string.
 
-**How they're made.** Python streams each table out of SQLite with the typed cleanup into CSV. DuckDB reads those CSVs with the explicit types above and writes Parquet and the DuckDB database. No DuckDB extension and no network access are needed.
+**How they're made.** Python streams each table out of SQLite with the typed cleanup into CSV. DuckDB reads those CSVs with the explicit types above and writes Parquet, JSON Lines and the DuckDB database. No DuckDB extension and no network access are needed.
+
+**JSON Lines.** One JSON object per row, UTF-8, `\n`-terminated. Every column is a key, in table order, even when its value is `null`. Integers and doubles are JSON numbers, and NULL is `null`. IPv6 `istart`/`iend` go up to 2^62, beyond the 2^53 that a JavaScript `JSON.parse` or a double can hold exactly. jq ≥ 1.7, Python and Elasticsearch `long` fields keep them exact.
 
 **DuckDB database.** The tables have the same columns, order and types as Parquet. They have no primary key and no indexes: DuckDB's per-block min/max statistics already serve range lookups like `istart <= x AND iend >= x`, and an index like SQLite's `numres (type, istart, iend)` made the file 50% larger without making that query faster (#13).
 
@@ -234,7 +236,7 @@ Columns not listed below, e.g. from a legacy db, are exported as VARCHAR. In a l
 13. IPv6 global unicast is tested with real `2000::/3` containment. Legacy tested `prefix.startswith("2")`, which wrongly zeroed `3xxx:` prefixes and computed values for short forms like `2a0::` (= `02a0::`). This affected 4 RIS rows on 2026-11-10.
 14. `roadata.cc` and `roadata.origin_as_cc` actually exist in the published file. The legacy README documented them, but the production databases never had these columns, because the manual enrichment SQL was never run there.
 15. `riswhois.rovstatus`, `rovreason` and `rov_roas` (since 2.1, issue #8) are new. Legacy had no route origin validation (§4.5).
-16. Exports to Parquet, CSV, DuckDB and `.db.gz` (since 2.1, §5.7) are new. Legacy only produced the SQLite file.
+16. Exports to Parquet, CSV, JSON Lines, DuckDB and `.db.gz` (since 2.1, §5.7) are new. Legacy only produced the SQLite file.
 
 ## 8. Open questions
 

@@ -3,7 +3,8 @@
 The typed exports go through one typed CSV per table: Python streams rows out of SQLite, applying
 the typed cleanup (empty strings and placeholder dates become NULL, ``orgid`` becomes a string,
 …), and writes CSV where an empty field means NULL. The CSVs are the ``csv`` export themselves,
-and DuckDB reads them back with explicit column types to write Parquet and the DuckDB database.
+and DuckDB reads them back with explicit column types to write Parquet, JSON Lines and the
+DuckDB database.
 This needs no DuckDB extension and never touches the network. ``sqlite.gz`` is different: it is
 the finished ``.db`` file itself, gzipped.
 
@@ -94,15 +95,13 @@ TABLES = tuple(SCHEMA)
 class Format(StrEnum):
     parquet = "parquet"
     csv = "csv"
+    jsonl = "jsonl"
     duckdb = "duckdb"
     sqlite_gz = "sqlite.gz"
 
 
 # Formats built from the typed CSVs (``run``); ``sqlite.gz`` copies the db file (``gzip_db``).
-TYPED = frozenset({Format.parquet, Format.csv, Format.duckdb})
-
-# Agreed in #7 but not implemented yet: format → sub-issue.
-PLANNED = {"jsonl": 12}
+TYPED = frozenset({Format.parquet, Format.csv, Format.jsonl, Format.duckdb})
 
 
 class ExportError(ValueError):
@@ -110,15 +109,11 @@ class ExportError(ValueError):
 
 
 def parse_formats(values: list[str]) -> list[Format]:
-    """Accept repeated and/or comma-separated values; reject unknown and planned formats."""
+    """Accept repeated and/or comma-separated values; reject unknown formats."""
     out: list[Format] = []
     for raw in (v.strip() for value in values for v in value.split(",")):
         if not raw:
             continue
-        if raw in PLANNED:
-            raise ExportError(
-                f"export format {raw!r} is planned but not implemented yet (#{PLANNED[raw]})"
-            )
         try:
             fmt = Format(raw)
         except ValueError:
@@ -226,15 +221,24 @@ def csv_to_parquet(csv_path: Path, cols: dict[str, str], out: Path) -> None:
         )
 
 
+def csv_to_jsonl(csv_path: Path, cols: dict[str, str], out: Path) -> None:
+    """One JSON object per row: every column as a key, in order; NULL as ``null``."""
+    with duckdb.connect() as con:
+        con.execute(
+            f"COPY (SELECT * FROM {_read_csv(csv_path, cols)})"
+            f" TO {_sql_str(str(out))} (FORMAT json)"
+        )
+
+
 def csv_to_duckdb(
     con: duckdb.DuckDBPyConnection, table: str, csv_path: Path, cols: dict[str, str]
 ) -> None:
     con.execute(f'CREATE TABLE "{table}" AS SELECT * FROM {_read_csv(csv_path, cols)}')
 
 
-def csv_tarball(csvs: list[Path], out: Path) -> None:
+def tarball(files: list[Path], out: Path) -> None:
     with tarfile.open(out, "w:gz", compresslevel=6) as tar:
-        for p in csvs:
+        for p in files:
             tar.add(p, arcname=p.name)
 
 
@@ -302,9 +306,9 @@ def run(
     """
     if not TYPED.intersection(formats):
         return {}
-    work = stage / ".csv"
+    work = stage / ".work"
     work.mkdir()
-    csvs, bad = [], {}
+    csvs, jsonls, bad = [], [], {}
     duck_path = stage / f"{stem}.duckdb"
     with duckdb.connect(duck_path) if Format.duckdb in formats else nullcontext() as duck:
         for table in tables(conn):
@@ -318,14 +322,20 @@ def run(
                 with task(f"export {table}.parquet", 1) as tick:
                     csv_to_parquet(path, cols, stage / f"{table}.parquet")
                     tick(1)
+            if Format.jsonl in formats:
+                jsonls.append(work / f"{table}.jsonl")
+                with task(f"export {table}.jsonl", 1) as tick:
+                    csv_to_jsonl(path, cols, jsonls[-1])
+                    tick(1)
             if duck:
                 with task(f"export {table} → {duck_path.name}", 1) as tick:
                     csv_to_duckdb(duck, table, path, cols)
                     tick(1)
-    if Format.csv in formats:
-        with task(f"pack {stem}.csv.tar.gz", 1) as tick:
-            csv_tarball(csvs, stage / f"{stem}.csv.tar.gz")
-            tick(1)
+    for fmt, files in ((Format.csv, csvs), (Format.jsonl, jsonls)):
+        if fmt in formats:
+            with task(f"pack {stem}.{fmt}.tar.gz", 1) as tick:
+                tarball(files, stage / f"{stem}.{fmt}.tar.gz")
+                tick(1)
     shutil.rmtree(work)
     return {t: n for t, n in bad.items() if n}
 

@@ -1,5 +1,6 @@
 import csv
 import gzip
+import json
 import re
 import sqlite3
 import tarfile
@@ -31,6 +32,17 @@ def _pq(sql: str):
         return con.execute(sql).fetchall()
 
 
+def _jsonl(tar_path: Path) -> dict[str, list[dict]]:
+    """Every .jsonl member of a .jsonl.tar.gz, parsed: table → rows."""
+    with tarfile.open(tar_path) as tar:
+        return {
+            m.name.removesuffix(".jsonl"): [
+                json.loads(line) for line in tar.extractfile(m).read().decode().splitlines()
+            ]
+            for m in tar.getmembers()
+        }
+
+
 def _duck(path: Path, sql: str):
     with duckdb.connect(path, read_only=True) as con:
         return con.execute(sql).fetchall()
@@ -51,16 +63,12 @@ class TestParseFormats:
         assert got == [export.Format.parquet, export.Format.csv]
 
     def test_all_implemented_formats(self):
-        got = export.parse_formats(["parquet,csv,duckdb,sqlite.gz"])
+        got = export.parse_formats(["parquet,csv,jsonl,duckdb,sqlite.gz"])
         assert got == list(export.Format)
 
     def test_empty(self):
         assert export.parse_formats([]) == []
         assert export.parse_formats([" , "]) == []
-
-    def test_planned_formats_point_to_their_issue(self):
-        with pytest.raises(export.ExportError, match="#12"):
-            export.parse_formats(["jsonl"])
 
     def test_unknown(self):
         with pytest.raises(export.ExportError, match="unknown export format 'xlsx'"):
@@ -193,6 +201,34 @@ class TestExportCommand:
             (1.52587890625e-05, 65536, 28000)
         ]
 
+    def test_jsonl(self, small_db, tmp_path):
+        result = runner.invoke(app, ["export", str(small_db), "--format", "jsonl"])
+        assert result.exit_code == 0, result.output
+        out = tmp_path / "netdata-20261110"
+        assert [p.name for p in out.iterdir()] == ["netdata-20261110.jsonl.tar.gz"]
+        rows = _jsonl(out / "netdata-20261110.jsonl.tar.gz")
+        assert sorted(rows) == ["meta", "numres", "roadata"]
+        for t, table_rows in rows.items():
+            for r in table_rows:
+                assert list(r) == list(export.SCHEMA[t])  # every column, in order, even if null
+        numres = rows["numres"]
+        assert [(r["orgid"], r["date"], r["cc"], r["length"]) for r in numres] == [
+            ("71316", 20000101, "UY", 65536),  # numbers stay numbers, orgid stays a string
+            (None, None, None, 768),
+            ('d98c,"q"', None, "US", 1),
+        ]
+        (roa,) = rows["roadata"]
+        assert (roa["equiv"], roa["equiv2"], roa["origin_as2"]) == (1.52587890625e-05, 65536, 28000)
+
+    def test_jsonl_matches_parquet(self, small_db, tmp_path):
+        args = ["export", str(small_db), "--format", "jsonl,parquet"]
+        assert runner.invoke(app, args).exit_code == 0
+        out = tmp_path / "netdata-20261110"
+        rows = _jsonl(out / "netdata-20261110.jsonl.tar.gz")
+        for t in ("numres", "roadata", "meta"):
+            want = _pq(f"SELECT * FROM '{out}/{t}.parquet'")  # file order
+            assert [tuple(r.values()) for r in rows[t]] == want, t
+
     def test_duckdb_matches_parquet(self, small_db, tmp_path):
         args = ["export", str(small_db), "--format", "duckdb,parquet"]
         assert runner.invoke(app, args).exit_code == 0
@@ -271,7 +307,7 @@ class TestExportCommand:
     @pytest.mark.parametrize(
         ("args", "msg"),
         [
-            (["--format", "jsonl"], "#12"),
+            (["--format", "xml"], "unknown export format 'xml'"),
             (["--format", ""], "no export format"),
         ],
     )
@@ -288,7 +324,7 @@ class TestExportCommand:
         def boom(*a, **k):
             raise OSError("disk full")
 
-        monkeypatch.setattr(export, "csv_tarball", boom)
+        monkeypatch.setattr(export, "tarball", boom)
         result = runner.invoke(app, ["export", str(small_db), "--format", "parquet,csv"])
         assert result.exit_code == 1
         assert sorted(p.name for p in tmp_path.iterdir()) == ["netdata-20261110.db"]
@@ -353,6 +389,18 @@ class TestGetWithExport:
             ).fetchall()
         assert _duck(duck, "SELECT rovstatus, count(*) FROM riswhois GROUP BY 1 ORDER BY 1") == rov
 
+    def test_jsonl(self, serve, tmp_path):
+        assert run_get("--export", "jsonl").exit_code == 0
+        stem = built_db(tmp_path).stem
+        rows = _jsonl(tmp_path / "out" / stem / f"{stem}.jsonl.tar.gz")
+        with sqlite3.connect(built_db(tmp_path)) as conn:
+            for t in export.tables(conn):
+                n = conn.execute(f"SELECT count(*) FROM {t}").fetchone()[0]
+                assert len(rows[t]) == n, t
+            big = conn.execute("SELECT max(iend) FROM riswhois").fetchone()[0]
+        # past 2**53, where a double would round: exact in the file
+        assert max(r["iend"] for r in rows["riswhois"]) == big > 2**53
+
     def test_sqlite_gz_alone(self, serve, tmp_path):
         assert run_get("--source", "delegated", "--export", "sqlite.gz").exit_code == 0
         assert sorted(p.suffix for p in (tmp_path / "out").iterdir()) == [".db", ".gz"]
@@ -366,10 +414,10 @@ class TestGetWithExport:
         assert result.exit_code == 1
         assert list((tmp_path / "out").iterdir()) == []
 
-    def test_planned_format_rejected_before_downloading(self, serve, tmp_path):
-        result = run_get("--export", "jsonl")
+    def test_unknown_format_rejected_before_downloading(self, serve, tmp_path):
+        result = run_get("--export", "xml")
         assert result.exit_code == 2
-        assert "#12" in result.output
+        assert "unknown export format" in result.output
         assert not (tmp_path / "cache").exists()
 
 
