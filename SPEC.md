@@ -31,7 +31,7 @@ All sources are fetched over HTTPS. URLs are **configurable** (§6), and the def
 | RIPE NCC delegated-extended | `https://ftp.ripe.net/pub/stats/ripencc/delegated-ripencc-extended-latest` | `\|`-separated | `numres` |
 | AFRINIC delegated-extended | `https://ftp.afrinic.net/pub/stats/afrinic/delegated-afrinic-extended-latest` | `\|`-separated | `numres` |
 | APNIC delegated-extended | `https://ftp.apnic.net/stats/apnic/delegated-apnic-extended-latest` | `\|`-separated | `numres` |
-| RPKI validated objects (Routinator) | `https://routinator.labs.lacnic.net/json` | Routinator JSON: `metadata`, `roas` (`asn`, `prefix`, `maxLength`, `ta`), `routerKeys`, `aspas` | `roadata` |
+| RPKI validated objects (Routinator) | `https://routinator.labs.lacnic.net/json` | Routinator JSON: `metadata`, `roas` (`asn`, `prefix`, `maxLength`, `ta`), `routerKeys`, `aspas` (`customer`, `providers`, `ta`) | `roadata`, `aspadata`, `aspa_providers` |
 | RIPE RIS whois dump, IPv4 | `https://www.ris.ripe.net/dumps/riswhoisdump.IPv4.gz` | gzip, tab-separated | `riswhois` |
 | RIPE RIS whois dump, IPv6 | `https://www.ris.ripe.net/dumps/riswhoisdump.IPv6.gz` | gzip, tab-separated | `riswhois` |
 
@@ -72,8 +72,9 @@ This step runs after `numres` and `roadata` are loaded. It covers **ROAs from ev
 
 - `roadata.cc`: the `cc` of the `numres` row with **the same `type`** whose `[istart, iend]` contains the ROA's `istart`, restricted to `status IN ('allocated','assigned')`.
 - `roadata.origin_as_cc`: the `cc` of the `numres` row with `type='asn'` that contains `origin_as2`, under the same status rule.
+- `aspadata.asid_cc` (since 2.2): the `cc` of the `numres` row with `type='asn'` that contains `asid`, under the same status rule.
 - If nothing matches, the value is `'ZZ'`.
-- If a run doesn't include `numres` (single-source run), the step is skipped with a warning and both columns stay NULL.
+- If a run doesn't include `numres` (single-source run), the step is skipped with a warning and these columns stay NULL.
 
 ### 4.5 Enrichment: RPKI route origin validation on `riswhois` (since 2.1, issue #8)
 
@@ -93,6 +94,22 @@ This step runs after `roadata` and `riswhois` are loaded. Every `riswhois` route
 - Rows whose prefix couldn't be parsed (`type` not `ipv4`/`ipv6`) get NULL in all three columns.
 - **Verified** against Routinator's validity API (`scripts/rov_crosscheck.py`): on 2026-11-10, 1,200 sampled routes agreed on status, reason and ROA count. Note that Routinator's own *description* calls a route "length"-invalid whenever no covering VRP fails on ASN alone. `rovreason` says `length` only when a covering ROA has the route's own ASN, as defined above, so with a wrong-ASN, too-short ROA we say `asn` and Routinator's text says length.
 - If a run doesn't include `roadata` (e.g. `--source riswhois`), the step is skipped with a warning and all three columns stay NULL. `notfound` would falsely claim that no ROA exists.
+
+### 4.6 Routinator JSON `aspas` → `aspadata` and `aspa_providers` (since 2.2, issue #16)
+
+ASPA (Autonomous System Provider Authorization) objects come from the same Routinator export as the ROAs (§4.2), one per customer AS.
+
+- One `aspadata` row per element of `aspas`, in Routinator's order:
+  - `asid` ← `customer`, as a plain integer (`AS43` → 43);
+  - `providers` ← `providers`, as AS numbers sorted ascending and joined with commas, without the `AS` prefix (`['AS6939', 'AS174']` → `'174,6939'`);
+  - `ta` ← `ta`, the same trust-anchor names as `roadata.ta`;
+  - `asid_cc` is filled by the enrichment step (§4.4).
+- One `aspa_providers` row per (customer, provider) pair, with the same `asid` and `ta`, for joins such as "which ASes list AS174 as a provider?".
+- **AS0** as a provider means the customer AS declares that it has no providers (ASPA profile, draft-ietf-sidrops-aspa-profile). It is kept as published: `providers = '0'` and an `aspa_providers` row with `provider = 0`.
+- An AS number that isn't of the form `AS<digits>`, or an entry without `customer`, `providers` or `ta`, fails the run: Routinator always writes that form, so anything else means its format changed.
+- An export without ASPAs (e.g. a validator with ASPA disabled) gives empty tables and a warning.
+- `meta` gets the row `rpki-aspas`, sharing `url`, `sha256` and `source_serial` with `rpki-roas`. Its `row_count` is the number of ASPAs, not of provider pairs.
+- ASPA *path verification* of `riswhois` routes isn't possible: the RIS whois dumps give only the origin AS, not the AS path.
 
 ## 5. Output
 
@@ -194,6 +211,8 @@ Columns not listed below, e.g. from a legacy db, are exported as VARCHAR. In a l
 | --- | --- |
 | `numres` | `id` BIGINT · `rir` VARCHAR · `cc` VARCHAR · `type` VARCHAR · `block` VARCHAR · `length` BIGINT · `date` INTEGER · `status` VARCHAR · `orgid` VARCHAR · `istart` BIGINT · `iend` BIGINT · `prefix` VARCHAR · `equiv` BIGINT |
 | `roadata` | `id` BIGINT · `origin_as` VARCHAR · `prefix` VARCHAR · `maxlen` INTEGER · `ta` VARCHAR · `origin_as2` BIGINT · `istart` BIGINT · `iend` BIGINT · `type` VARCHAR · `pfxlen` INTEGER · `equiv` DOUBLE · `cc` VARCHAR · `origin_as_cc` VARCHAR · `equiv2` BIGINT |
+| `aspadata` | `id` BIGINT · `asid` BIGINT · `providers` VARCHAR · `ta` VARCHAR · `asid_cc` VARCHAR |
+| `aspa_providers` | `asid` BIGINT · `provider` BIGINT · `ta` VARCHAR |
 | `riswhois` | `id` BIGINT · `origin_as` VARCHAR · `prefix` VARCHAR · `viewed_by` INTEGER · `istart` BIGINT · `iend` BIGINT · `type` VARCHAR · `pfxlen` INTEGER · `rovstatus` VARCHAR · `rovreason` VARCHAR · `rov_roas` INTEGER |
 | `meta` | `source` VARCHAR · `url` VARCHAR · `fetched_at_utc` VARCHAR · `source_serial` VARCHAR · `row_count` BIGINT · `sha256` VARCHAR · `tool_version` VARCHAR · `run_started_at_utc` VARCHAR |
 
@@ -211,6 +230,19 @@ Columns not listed below, e.g. from a legacy db, are exported as VARCHAR. In a l
 **DuckDB database.** It is written by DuckDB 1.5, so DuckDB 1.5 and every later version, 2.x included, can open it. The tables have the same columns, order and types as Parquet. They have no primary key and no indexes: DuckDB's per-block min/max statistics already serve range lookups like `istart <= x AND iend >= x`, and an index like SQLite's `numres (type, istart, iend)` made the file 50% larger without making that query faster (#13).
 
 **Atomicity.** Exports are staged in a temp directory next to their destination. A run publishes the export directory, the `.db.gz` and the `.db` only when **everything**, every requested format included, has succeeded. If an export fails, nothing is published, not even the `.db`, and the run exits non-zero. A rerun on the same day replaces the earlier export directory.
+
+### 5.8 `aspadata` and `aspa_providers` (since 2.2, issue #16)
+
+```sql
+CREATE TABLE aspadata (id INTEGER PRIMARY KEY, asid integer, providers text, ta text, asid_cc CHAR(2));
+CREATE TABLE aspa_providers (asid integer, provider integer, ta text);
+```
+
+`aspa_providers` gets an index for "who lists this provider" lookups:
+
+```sql
+CREATE INDEX aspa_providers_provider ON aspa_providers (provider);
+```
 
 ## 6. Operational behavior
 
@@ -241,6 +273,7 @@ Columns not listed below, e.g. from a legacy db, are exported as VARCHAR. In a l
 15. `riswhois.rovstatus`, `rovreason` and `rov_roas` (since 2.1, issue #8) are new. Legacy had no route origin validation (§4.5).
 16. Exports to Parquet, CSV, JSON Lines, DuckDB and `.db.gz` (since 2.1, §5.7) are new. Legacy only produced the SQLite file.
 17. `roadata` comes from Routinator's JSON instead of its CSV (since 2.2, §4.2), with identical rows. The `meta` row for it is named `rpki-roas` instead of `rpki` (2.0–2.1), and its `source_serial` is filled in. `meta` is new in v2, so legacy scripts aren't affected.
+18. The `aspadata` and `aspa_providers` tables (since 2.2, §4.6, §5.8) are new. Legacy had no ASPA data.
 
 ## 8. Open questions
 

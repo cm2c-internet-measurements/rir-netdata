@@ -35,8 +35,9 @@ def test_ddl_matches_spec(table):
     assert _norm(db.DDL[table]) == SPEC_SQL[table]
 
 
-def test_indexes_match_spec():
-    assert [_norm(s) for s in db.INDEXES["numres"]] == [SPEC_SQL["numres:idx"]]
+@pytest.mark.parametrize("table", sorted(db.INDEXES))
+def test_indexes_match_spec(table):
+    assert [_norm(s) for s in db.INDEXES[table]] == [SPEC_SQL[f"{table}:idx"]]
 
 
 def _tables(path: Path) -> set[str]:
