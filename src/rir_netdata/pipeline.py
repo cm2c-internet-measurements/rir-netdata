@@ -11,7 +11,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-from rir_netdata import __version__, db, enrich, progress, rov
+from rir_netdata import __version__, db, enrich, export, progress, rov
 from rir_netdata.config import Config
 from rir_netdata.fetch import Fetched, fetch, make_client
 from rir_netdata.sources import Tick, delegated, riswhois, rpki
@@ -175,8 +175,37 @@ def _build(
     return meta, rov_stats
 
 
-def run(cfg: Config, source: Source, rirs: list[str], target: Path, console: Console) -> Path:
-    """Run the pipeline. Nothing is written to ``target`` unless every step succeeds."""
+def export_dir(target: Path) -> Path:
+    """Exports of ``var/netdata-YYYYMMDD.db`` go in ``var/netdata-YYYYMMDD/``."""
+    return target.with_suffix("")
+
+
+def write_exports(
+    conn: sqlite3.Connection, formats: list[export.Format], stage: export.Stage, console: Console
+) -> None:
+    with progress.rows(console) as bars:
+        bad = export.run(
+            conn,
+            formats,
+            stage.path,
+            stage.final.name,
+            lambda description, total: progress.task(bars, description, total),
+        )
+    for table, n in bad.items():
+        console.print(
+            f"[yellow]warning:[/] {table}: {n:,} values didn't fit their type; exported as NULL"
+        )
+
+
+def run(
+    cfg: Config,
+    source: Source,
+    rirs: list[str],
+    target: Path,
+    console: Console,
+    formats: list[export.Format] | None = None,
+) -> Path:
+    """Run the pipeline. Nothing is written unless every step, exports included, succeeds."""
     started = datetime.now(UTC)
     jobs = plan(cfg, source, rirs)
 
@@ -184,8 +213,23 @@ def run(cfg: Config, source: Source, rirs: list[str], target: Path, console: Con
     fetched = _download_all(cfg, jobs, console)
 
     console.rule("[bold]Building database")
-    with db.build(target) as conn:
-        meta, rov_stats = _build(conn, jobs, fetched, _iso(started), console)
+    stage = export.Stage(export_dir(target)) if formats else None
+    published = False
+    try:
+        with db.build(target) as conn:
+            meta, rov_stats = _build(conn, jobs, fetched, _iso(started), console)
+            if stage:
+                console.rule("[bold]Exporting")
+                write_exports(conn, formats, stage, console)
+        published = True
+        if stage:
+            stage.publish()
+    except BaseException:
+        if stage:
+            stage.discard()
+        if published:  # the db made it but its exports didn't: take the db back
+            target.unlink(missing_ok=True)
+        raise
 
     _summary(console, meta, target)
     if rov_stats:
@@ -195,6 +239,9 @@ def run(cfg: Config, source: Source, rirs: list[str], target: Path, console: Con
             for s in (rov.VALID, rov.INVALID, rov.NOTFOUND)
         )
         console.print(f"[bold]ROV[/] riswhois: {parts}")
+    if stage:
+        files = sorted(p.name for p in stage.final.iterdir())
+        console.print(f"[bold]exports[/] {stage.final}/: {', '.join(files)}")
     return target
 
 

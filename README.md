@@ -18,7 +18,7 @@ uv run rir-netdata get        # → var/netdata-20261110.db  (~250 MB, ~3.4M row
 
 ## What's in the database
 
-Each run produces `netdata-YYYYMMDD.db` with four tables:
+Each run produces `netdata-YYYYMMDD.db` with four tables. It can optionally also produce **Parquet** and **CSV** copies (see [Other formats](#other-formats)):
 
 | Table | What it holds | Built from |
 | --- | --- | --- |
@@ -90,6 +90,7 @@ uv run rir-netdata get --source delegated        # only the RIR delegations
 uv run rir-netdata get --rir lacnic              # only one registry's delegations
 uv run rir-netdata get --output-dir /srv/data    # write somewhere else
 uv run rir-netdata get --config netdata.toml     # override URLs, retries, cache…
+uv run rir-netdata get --export parquet,csv      # also write Parquet and CSV copies
 uv run rir-netdata --help
 ```
 
@@ -125,6 +126,29 @@ url = "https://my-validator.example.net/csv"
 ```
 
 Every key is optional, and a misspelled key is an error rather than being silently ignored. All the settings are listed in [`config.py`](src/rir_netdata/config.py).
+
+### Other formats
+
+The SQLite file is always produced. Add `--export` to get copies in other formats, written to a folder next to the database:
+
+```sh
+uv run rir-netdata get --export parquet,csv
+# var/netdata-YYYYMMDD.db
+# var/netdata-YYYYMMDD/numres.parquet, roadata.parquet, riswhois.parquet, meta.parquet
+# var/netdata-YYYYMMDD/netdata-YYYYMMDD.csv.tar.gz
+
+uv run rir-netdata export var/netdata-20261110.db --format parquet   # convert any existing db
+```
+
+- **Parquet** keeps every column typed (integers, floats, strings, NULLs), so it's the best choice for DuckDB, pandas, Polars, Spark or R.
+- **CSV** is for everything else. An empty field means NULL.
+
+The typed schema is in [SPEC.md §5.7](SPEC.md#57-exports-since-21-issues-7-10-11). JSON Lines, DuckDB and `.db.gz` exports are planned ([#12](https://github.com/cm2c-internet-measurements/rir-netdata/issues/12), [#13](https://github.com/cm2c-internet-measurements/rir-netdata/issues/13), [#14](https://github.com/cm2c-internet-measurements/rir-netdata/issues/14)).
+
+```sql
+-- DuckDB queries the Parquet files in place
+SELECT rovstatus, count(*) FROM 'var/netdata-20261110/riswhois.parquet' GROUP BY 1;
+```
 
 ## Querying the data
 
