@@ -141,7 +141,10 @@ def _build(
     meta = []
     with progress.rows(console) as bars:
         for job, got in zip(jobs, fetched, strict=True):
-            with progress.task(bars, f"load {job.name}", progress.count_lines(got.path)) as tick:
+            label = f"load {job.name}"
+            if len(job.tables) > 1:  # say what one file feeds, e.g. rpki → roadata, aspadata
+                label += f" → {', '.join(job.tables)}"
+            with progress.task(bars, label, progress.count_lines(got.path)) as tick:
                 loaded = job.load(conn, got.path, tick)
             meta += [
                 db.MetaRow(

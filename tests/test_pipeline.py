@@ -96,6 +96,7 @@ def test_full_run_enriches_roadata(serve, tmp_path):
 def test_full_run_loads_and_enriches_aspas(serve, tmp_path):
     result = _get()
     assert result.exit_code == 0, result.output
+    assert "load rpki → roadata, aspadata, aspa_providers" in result.output
     assert "enrich aspadata asid_cc" in result.output
     with sqlite3.connect(_db(tmp_path)) as conn:
         rows = conn.execute("SELECT asid, providers, ta, asid_cc FROM aspadata ORDER BY id")
