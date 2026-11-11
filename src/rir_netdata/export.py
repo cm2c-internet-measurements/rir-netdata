@@ -22,10 +22,14 @@ from collections.abc import Callable
 from contextlib import nullcontext
 from enum import StrEnum
 from pathlib import Path
-
-import duckdb
+from typing import TYPE_CHECKING
 
 from rir_netdata.sources import Tick
+
+# DuckDB is imported only where an export needs it, so runs without exports never load it (its
+# wheels need specific CPU features: 2.0 requires AVX2, which is why it is pinned to 1.5.x).
+if TYPE_CHECKING:
+    import duckdb
 
 BATCH = 50_000
 
@@ -214,6 +218,8 @@ def _read_csv(csv_path: Path, cols: dict[str, str]) -> str:
 
 
 def csv_to_parquet(csv_path: Path, cols: dict[str, str], out: Path) -> None:
+    import duckdb
+
     with duckdb.connect() as con:
         con.execute(
             f"COPY (SELECT * FROM {_read_csv(csv_path, cols)})"
@@ -223,6 +229,8 @@ def csv_to_parquet(csv_path: Path, cols: dict[str, str], out: Path) -> None:
 
 def csv_to_jsonl(csv_path: Path, cols: dict[str, str], out: Path) -> None:
     """One JSON object per row: every column as a key, in order; NULL as ``null``."""
+    import duckdb
+
     with duckdb.connect() as con:
         con.execute(
             f"COPY (SELECT * FROM {_read_csv(csv_path, cols)})"
@@ -231,7 +239,7 @@ def csv_to_jsonl(csv_path: Path, cols: dict[str, str], out: Path) -> None:
 
 
 def csv_to_duckdb(
-    con: duckdb.DuckDBPyConnection, table: str, csv_path: Path, cols: dict[str, str]
+    con: "duckdb.DuckDBPyConnection", table: str, csv_path: Path, cols: dict[str, str]
 ) -> None:
     con.execute(f'CREATE TABLE "{table}" AS SELECT * FROM {_read_csv(csv_path, cols)}')
 
@@ -310,7 +318,13 @@ def run(
     work.mkdir()
     csvs, jsonls, bad = [], [], {}
     duck_path = stage / f"{stem}.duckdb"
-    with duckdb.connect(duck_path) if Format.duckdb in formats else nullcontext() as duck:
+    if Format.duckdb in formats:
+        import duckdb
+
+        duck_ctx = duckdb.connect(duck_path)
+    else:
+        duck_ctx = nullcontext()
+    with duck_ctx as duck:
         for table in tables(conn):
             path = work / f"{table}.csv"
             total = conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]

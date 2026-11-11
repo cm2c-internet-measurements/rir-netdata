@@ -206,7 +206,7 @@ Columns not listed below, e.g. from a legacy db, are exported as VARCHAR. In a l
 
 **JSON Lines.** One JSON object per row, UTF-8, `\n`-terminated. Every column is a key, in table order, even when its value is `null`. Integers and doubles are JSON numbers, and NULL is `null`. IPv6 `istart`/`iend` go up to 2^62, beyond the 2^53 that a JavaScript `JSON.parse` or a double can hold exactly. jq ≥ 1.7, Python and Elasticsearch `long` fields keep them exact.
 
-**DuckDB database.** The tables have the same columns, order and types as Parquet. They have no primary key and no indexes: DuckDB's per-block min/max statistics already serve range lookups like `istart <= x AND iend >= x`, and an index like SQLite's `numres (type, istart, iend)` made the file 50% larger without making that query faster (#13).
+**DuckDB database.** It is written by DuckDB 1.5, so DuckDB 1.5 and every later version, 2.x included, can open it. The tables have the same columns, order and types as Parquet. They have no primary key and no indexes: DuckDB's per-block min/max statistics already serve range lookups like `istart <= x AND iend >= x`, and an index like SQLite's `numres (type, istart, iend)` made the file 50% larger without making that query faster (#13).
 
 **Atomicity.** Exports are staged in a temp directory next to their destination. A run publishes the export directory, the `.db.gz` and the `.db` only when **everything**, every requested format included, has succeeded. If an export fails, nothing is published, not even the `.db`, and the run exits non-zero. A rerun on the same day replaces the earlier export directory.
 

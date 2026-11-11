@@ -19,7 +19,7 @@ A batch pipeline that downloads the five RIRs' delegated-extended files, a Routi
 
 - Python ≥ 3.12, managed with **uv** (`pyproject.toml`, `uv.lock` committed).
 - CLI: **typer** + **rich** (colored output, progress bars). Console script: `rir-netdata`.
-- Exports: **DuckDB** (`read_csv` with explicit types → `COPY … TO` parquet/json, `CREATE TABLE … AS` in a `.duckdb`). Never use its `sqlite` extension, because it downloads at runtime.
+- Exports: **DuckDB** (`read_csv` with explicit types → `COPY … TO` parquet/json, `CREATE TABLE … AS` in a `.duckdb`). Never use its `sqlite` extension, because it downloads at runtime. **Pinned to 1.5.x** (`<2`): DuckDB 2.0 wheels crash on CPUs without AVX2 (the QEMU VMs we build and run on), and a `.duckdb` file written by 2.0 can't be opened by DuckDB 1.x. Import it only inside the export functions, never at module level; a test enforces this.
 - Tabular transforms: **petl** (stream rows with `fromcsv`/`select`/`cut`, derive columns in one `rowmap`, load with `appenddb`). Create tables with explicit DDL from SPEC §5 first; never let a library infer the schema.
 - IP math: stdlib `ipaddress`. HTTP: `httpx`. Retries: **tenacity** decorators. Config: TOML via stdlib `tomllib`.
 - Tests: **pytest**, offline only, using small fixture files under `tests/fixtures/`. Lint/format: **ruff**.
