@@ -31,7 +31,7 @@ All sources are fetched over HTTPS. URLs are **configurable** (§6), and the def
 | RIPE NCC delegated-extended | `https://ftp.ripe.net/pub/stats/ripencc/delegated-ripencc-extended-latest` | `\|`-separated | `numres` |
 | AFRINIC delegated-extended | `https://ftp.afrinic.net/pub/stats/afrinic/delegated-afrinic-extended-latest` | `\|`-separated | `numres` |
 | APNIC delegated-extended | `https://ftp.apnic.net/stats/apnic/delegated-apnic-extended-latest` | `\|`-separated | `numres` |
-| RPKI validated ROAs | `https://routinator.labs.lacnic.net/csv` | CSV with header `ASN,IP Prefix,Max Length,Trust Anchor` | `roadata` |
+| RPKI validated objects (Routinator) | `https://routinator.labs.lacnic.net/json` | Routinator JSON: `metadata`, `roas` (`asn`, `prefix`, `maxLength`, `ta`), `routerKeys`, `aspas` | `roadata` |
 | RIPE RIS whois dump, IPv4 | `https://www.ris.ripe.net/dumps/riswhoisdump.IPv4.gz` | gzip, tab-separated | `riswhois` |
 | RIPE RIS whois dump, IPv6 | `https://www.ris.ripe.net/dumps/riswhoisdump.IPv6.gz` | gzip, tab-separated | `riswhois` |
 
@@ -50,9 +50,11 @@ Only the `latest` snapshot of each source is supported. A run is "today's view o
   - **ipv6:** `istart`/`iend` = network/last address **shifted right 64 bits** (units of /64); `prefix` = `start/value`; `equiv` = size in /32 equivalents (§5.6).
   - **asn:** `istart` = first ASN; `iend = istart + value - 1` (**inclusive**); `prefix` = literal `'na/asn'`; `equiv` = `value`.
 
-### 4.2 Routinator CSV → `roadata`
+### 4.2 Routinator JSON → `roadata` (JSON since 2.2, issue #18)
 
-- Skip the header row.
+- One row per element of `roas`, in Routinator's order: `origin_as` ← `asn`, `prefix` ← `prefix`, `maxlen` ← `maxLength`, `ta` ← `ta`. `routerKeys` are ignored.
+- Until 2.1 this came from Routinator's `/csv` export. Both exports list the same ROAs in the same order (verified 2026-11-11: 1,033,123 rows, identical values and storage types), so `roadata` doesn't change. A configured URL that doesn't return Routinator JSON, such as the old `/csv`, fails the run with a clear error.
+- `meta` gets the row `rpki-roas`, whose `source_serial` is Routinator's `metadata.generatedTime`.
 - `origin_as` is kept as given (e.g. `AS28000`). `origin_as2` is the numeric part (`28000`).
 - Derived columns: `istart`, `iend`, `type` and `pfxlen` follow the same rules as 4.1. `equiv` and `equiv2` follow §5.6.
 - Unparseable prefixes get `type='badipv4'`/`'badipv6'` and `istart=iend=pfxlen=-1`, and are logged. This is the legacy behavior, kept.
@@ -130,7 +132,7 @@ The `rov*` columns were added in 2.1 and are appended last, so positional `SELEC
 
 ### 5.4 `meta` (new)
 
-There is one row per fetched source file, and run-level values are repeated on every row.
+There is one row per table loaded from each fetched source file, and run-level values are repeated on every row. A file that feeds several tables gives several rows with the same `url`, `fetched_at_utc` and `sha256`.
 
 ```sql
 CREATE TABLE meta (source text, url text, fetched_at_utc text, source_serial text, row_count integer,
@@ -216,6 +218,7 @@ Columns not listed below, e.g. from a legacy db, are exported as VARCHAR. In a l
 - **Config:** built-in defaults, optionally overridden by a TOML file (`--config`). All source URLs, retry limits and the cache directory are configurable.
 - **Retries:** every download uses `tenacity` with exponential backoff. Attempts and maximum wait come from config.
 - **Atomicity:** the run builds into a temp file next to the target. If every requested source and step succeeds, the temp file is renamed into place. Otherwise the temp file is deleted, the run exits non-zero, and no partial db is ever published.
+- **Compression:** downloads ask for compressed transfer (`Accept-Encoding: gzip, deflate`) and are stored decompressed, so the cache and `meta.sha256` always refer to the content. Routinator's JSON is about 5 MB on the wire against 90 MB decompressed (issue #21).
 - **Download cache:** raw downloads go to a cache dir (default `tmp/`). A file younger than its freshness window is reused: 1 h for delegated and RPKI, 24 h for RIS, matching legacy.
 - **Packaging:** uv project with a `rir-netdata` console script, plus a Dockerfile built with uv. The container entrypoint is `rir-netdata get`.
 
@@ -237,6 +240,7 @@ Columns not listed below, e.g. from a legacy db, are exported as VARCHAR. In a l
 14. `roadata.cc` and `roadata.origin_as_cc` actually exist in the published file. The legacy README documented them, but the production databases never had these columns, because the manual enrichment SQL was never run there.
 15. `riswhois.rovstatus`, `rovreason` and `rov_roas` (since 2.1, issue #8) are new. Legacy had no route origin validation (§4.5).
 16. Exports to Parquet, CSV, JSON Lines, DuckDB and `.db.gz` (since 2.1, §5.7) are new. Legacy only produced the SQLite file.
+17. `roadata` comes from Routinator's JSON instead of its CSV (since 2.2, §4.2), with identical rows. The `meta` row for it is named `rpki-roas` instead of `rpki` (2.0–2.1), and its `source_serial` is filled in. `meta` is new in v2, so legacy scripts aren't affected.
 
 ## 8. Open questions
 

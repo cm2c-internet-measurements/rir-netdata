@@ -46,11 +46,30 @@ def test_full_run_builds_all_tables(serve, tmp_path):
         tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         assert tables == {"meta", "numres", "roadata", "riswhois"}
         meta = dict(conn.execute("SELECT source, row_count FROM meta").fetchall())
-        assert meta["rpki"] == 12
+        assert meta["rpki-roas"] == 12
         assert meta["riswhois-ipv4"] == 5
         assert conn.execute("SELECT count(*) FROM riswhois").fetchone()[0] == (
             meta["riswhois-ipv4"] + meta["riswhois-ipv6"]
         )
+
+
+def test_rpki_meta_has_routinator_generation_time(serve, tmp_path):
+    assert _get("--source", "rpki").exit_code == 0
+    with sqlite3.connect(_db(tmp_path)) as conn:
+        rows = conn.execute("SELECT source, url, source_serial FROM meta").fetchall()
+    assert rows == [("rpki-roas", config.DEFAULT_RPKI["url"], "2026-11-10T15:20:32Z")]
+
+
+def test_rpki_csv_instead_of_json_fails_clearly(serve, tmp_path):
+    url = "https://rpki.example.net/csv"
+    (tmp_path / "netdata.toml").write_text(
+        (tmp_path / "netdata.toml").read_text() + f'[sources.rpki]\nurl = "{url}"\n'
+    )
+    serve.routes[url] = b"ASN,IP Prefix,Max Length,Trust Anchor\nAS1,1.0.0.0/24,24,apnic\n"
+    result = _get("--source", "rpki")
+    assert result.exit_code == 1
+    assert "Routinator JSON" in result.output
+    assert not list((tmp_path / "out").glob("*"))
 
 
 def test_rpki_failure_writes_nothing(serve, tmp_path):

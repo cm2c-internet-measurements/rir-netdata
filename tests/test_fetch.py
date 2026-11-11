@@ -1,3 +1,4 @@
+import gzip
 import hashlib
 import os
 import time
@@ -35,6 +36,45 @@ def test_downloads_and_hashes(tmp_path):
     assert not got.from_cache
     assert len(calls) == 1
     assert calls[0].headers["user-agent"].startswith("rir-netdata/")
+
+
+class _Bar:
+    """Records what ``fetch`` tells its progress display."""
+
+    def __init__(self):
+        self.total = self.completed = None
+
+    def add_task(self, description, total):
+        return 1
+
+    def update(self, task, total=None, completed=None):
+        self.total = total if total is not None else self.total
+        self.completed = completed if completed is not None else self.completed
+
+    def advance(self, task, n):
+        self.completed = (self.completed or 0) + n
+
+    def remove_task(self, task):
+        pass
+
+
+def test_compressed_transfer_is_stored_decoded(tmp_path):
+    body = BODY * 5000
+    wire = gzip.compress(body)
+    seen = []
+
+    def handler(request):
+        seen.append(request.headers["accept-encoding"])
+        headers = {"content-encoding": "gzip", "content-length": str(len(wire))}
+        return httpx.Response(200, stream=httpx.ByteStream(wire), headers=headers)  # streamed
+
+    bar = _Bar()
+    client = make_client(httpx.MockTransport(handler))
+    got = fetch(client, URL, tmp_path / "f", max_age=3600, retry_cfg=NO_WAIT, progress=bar)
+    assert "gzip" in seen[0]
+    assert got.path.read_bytes() == body
+    assert got.sha256 == hashlib.sha256(body).hexdigest()  # of the content, not the transfer
+    assert bar.total == bar.completed == len(wire) < len(body)  # progress counts wire bytes
 
 
 def test_retries_transient_errors(tmp_path):
