@@ -11,6 +11,7 @@
 - *Who holds this address block, in which country, and since when?*
 - *How much of Brazil's address space is covered by RPKI?*
 - *Which ROAs authorize an origin AS registered in a different country than the prefix?*
+- *Which networks have published an ASPA naming AS174 as one of their upstream providers?*
 
 ```sh
 uv run rir-netdata get        # → var/netdata-20261110.db  (~250 MB, ~3.4M rows, under a minute)
@@ -53,20 +54,21 @@ Every row also gets **convenience columns**, so range and size questions become 
 flowchart LR
     subgraph Sources
         D["5 × RIR delegated-extended"]
-        R["Routinator JSON (ROAs)"]
+        R["Routinator JSON (ROAs + ASPAs)"]
         W["RIPE RIS whois dumps"]
     end
     D & R & W -->|"download<br/>(cached, with retries)"| P["parse + derive<br/>istart / iend / prefix / equiv"]
     P --> N[(numres)]
     P --> A[(roadata)]
+    P --> AS[(aspadata<br/>aspa_providers)]
     P --> S[(riswhois)]
-    N -->|"country codes"| A
-    N & A & S --> F["netdata-YYYYMMDD.db<br/>+ meta provenance"]
+    N -->|"country codes"| A & AS
+    N & A & AS & S --> F["netdata-YYYYMMDD.db<br/>+ meta provenance"]
 ```
 
 1. **Download** every source over HTTPS, each from its operator's own server. Files are cached, and transient failures are retried with backoff.
 2. **Parse and derive.** Each file is streamed, its comment and summary lines are skipped, and the convenience columns are computed. Delegated files are checked against their own summary counts, which catches truncated downloads.
-3. **Enrich.** ROAs get the country codes of their prefix and origin AS, looked up in `numres`. Every BGP route gets its RPKI route origin validation status (RFC 6811), computed against all ROAs.
+3. **Enrich.** ROAs get the country codes of their prefix and origin AS, and ASPAs the country code of their customer AS, all looked up in `numres`. Every BGP route gets its RPKI route origin validation status (RFC 6811), computed against all ROAs.
 4. **Publish atomically.** The database is built in a temporary file and renamed into place only when every step has succeeded.
 
 ## Getting started
@@ -95,7 +97,7 @@ uv run rir-netdata get --export parquet,csv      # also write Parquet and CSV co
 uv run rir-netdata --help
 ```
 
-Country codes in `roadata` come from `numres`. A run without the delegated files (for example `--source rpki`) leaves them empty and tells you so.
+Country codes in `roadata` and `aspadata` come from `numres`. A run without the delegated files (for example `--source rpki`) leaves them empty and tells you so.
 
 ### Run it in a container
 
@@ -136,7 +138,8 @@ The SQLite file is always produced. Add `--export` to get copies in other format
 uv run rir-netdata get --export parquet,csv,jsonl,duckdb,sqlite.gz
 # var/netdata-YYYYMMDD.db
 # var/netdata-YYYYMMDD.db.gz
-# var/netdata-YYYYMMDD/numres.parquet, roadata.parquet, riswhois.parquet, meta.parquet
+# var/netdata-YYYYMMDD/numres.parquet, roadata.parquet, aspadata.parquet, aspa_providers.parquet,
+#                       riswhois.parquet, meta.parquet
 # var/netdata-YYYYMMDD/netdata-YYYYMMDD.csv.tar.gz
 # var/netdata-YYYYMMDD/netdata-YYYYMMDD.jsonl.tar.gz
 # var/netdata-YYYYMMDD/netdata-YYYYMMDD.duckdb
