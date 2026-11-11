@@ -18,7 +18,7 @@ uv run rir-netdata get        # → var/netdata-20261110.db  (~250 MB, ~3.4M row
 
 ## What's in the database
 
-Each run produces `netdata-YYYYMMDD.db` with four tables. It can optionally also produce **Parquet**, **CSV**, **DuckDB** and **gzipped** copies (see [Other formats](#other-formats)):
+Each run produces `netdata-YYYYMMDD.db` with four tables. It can optionally also produce **Parquet**, **CSV**, **JSON Lines**, **DuckDB** and **gzipped** copies (see [Other formats](#other-formats)):
 
 | Table | What it holds | Built from |
 | --- | --- | --- |
@@ -132,11 +132,12 @@ Every key is optional, and a misspelled key is an error rather than being silent
 The SQLite file is always produced. Add `--export` to get copies in other formats, written to a folder next to the database:
 
 ```sh
-uv run rir-netdata get --export parquet,csv,duckdb,sqlite.gz
+uv run rir-netdata get --export parquet,csv,jsonl,duckdb,sqlite.gz
 # var/netdata-YYYYMMDD.db
 # var/netdata-YYYYMMDD.db.gz
 # var/netdata-YYYYMMDD/numres.parquet, roadata.parquet, riswhois.parquet, meta.parquet
 # var/netdata-YYYYMMDD/netdata-YYYYMMDD.csv.tar.gz
+# var/netdata-YYYYMMDD/netdata-YYYYMMDD.jsonl.tar.gz
 # var/netdata-YYYYMMDD/netdata-YYYYMMDD.duckdb
 
 uv run rir-netdata export var/netdata-20261110.db --format parquet   # convert any existing db
@@ -144,10 +145,11 @@ uv run rir-netdata export var/netdata-20261110.db --format parquet   # convert a
 
 - **Parquet** keeps every column typed (integers, floats, strings, NULLs), so it's the best choice for DuckDB, pandas, Polars, Spark or R.
 - **CSV** is for everything else. An empty field means NULL.
+- **JSON Lines** has one object per row, for jq, Elasticsearch/OpenSearch and web tooling. Numbers stay numbers and NULL is `null`.
 - **DuckDB** is a single file with the same typed tables as Parquet: `duckdb var/netdata-YYYYMMDD/netdata-YYYYMMDD.duckdb`.
 - **`sqlite.gz`** is the `.db` itself, gzipped (about a quarter of the size), for downloading. `gunzip` it to get the identical file.
 
-The typed schema is in [SPEC.md §5.7](SPEC.md#57-exports-since-21). A JSON Lines export is planned ([#12](https://github.com/cm2c-internet-measurements/rir-netdata/issues/12)).
+The typed schema is in [SPEC.md §5.7](SPEC.md#57-exports-since-21).
 
 ```sql
 -- DuckDB queries the Parquet files in place

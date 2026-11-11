@@ -19,7 +19,7 @@ A batch pipeline that downloads the five RIRs' delegated-extended files, a Routi
 
 - Python ≥ 3.12, managed with **uv** (`pyproject.toml`, `uv.lock` committed).
 - CLI: **typer** + **rich** (colored output, progress bars). Console script: `rir-netdata`.
-- Exports: **DuckDB** (`read_csv` with explicit types → `COPY … TO parquet` / `CREATE TABLE … AS` in a `.duckdb`). Never use its `sqlite` extension, because it downloads at runtime.
+- Exports: **DuckDB** (`read_csv` with explicit types → `COPY … TO` parquet/json, `CREATE TABLE … AS` in a `.duckdb`). Never use its `sqlite` extension, because it downloads at runtime.
 - Tabular transforms: **petl** (stream rows with `fromcsv`/`select`/`cut`, derive columns in one `rowmap`, load with `appenddb`). Create tables with explicit DDL from SPEC §5 first; never let a library infer the schema.
 - IP math: stdlib `ipaddress`. HTTP: `httpx`. Retries: **tenacity** decorators. Config: TOML via stdlib `tomllib`.
 - Tests: **pytest**, offline only, using small fixture files under `tests/fixtures/`. Lint/format: **ruff**.
@@ -47,7 +47,7 @@ src/rir_netdata/
   sources/        # delegated.py, rpki.py, riswhois.py — parse + derive, one per source
   enrich.py       # roadata cc / origin_as_cc
   rov.py          # riswhois rovstatus / rovreason / rov_roas (RFC 6811, SPEC §4.5)
-  export.py       # typed CSV → Parquet / .csv.tar.gz / .duckdb, plus .db.gz; staged + published atomically (SPEC §5.7)
+  export.py       # typed CSV → Parquet / .csv.tar.gz / .jsonl.tar.gz / .duckdb, plus .db.gz; staged + published atomically (SPEC §5.7)
   progress.py     # rich progress bars (downloads, row loads, index, enrichment)
   pipeline.py     # orchestration: download all, then build atomically
   db.py           # DDL, atomic temp-file build + rename, meta table
