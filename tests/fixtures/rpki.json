@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "generated": 1794324032,
+    "generatedTime": "2026-11-10T15:20:32Z"
+  },
+  "roas": [
+    { "asn": "AS52286", "prefix": "2.152.0.0/22", "maxLength": 24, "ta": "lacnic" },
+    { "asn": "AS52286", "prefix": "2.152.4.0/23", "maxLength": 24, "ta": "lacnic" },
+    { "asn": "AS262191", "prefix": "2.152.8.0/21", "maxLength": 24, "ta": "lacnic" },
+    { "asn": "AS12975", "prefix": "1.178.112.0/20", "maxLength": 24, "ta": "ripe" },
+    { "asn": "AS19905", "prefix": "1.178.112.0/20", "maxLength": 24, "ta": "ripe" },
+    { "asn": "AS7224", "prefix": "1.178.0.0/24", "maxLength": 24, "ta": "arin" },
+    { "asn": "AS16509", "prefix": "1.178.0.0/24", "maxLength": 24, "ta": "arin" },
+    { "asn": "AS13335", "prefix": "1.0.0.0/24", "maxLength": 24, "ta": "apnic" },
+    { "asn": "AS36994", "prefix": "41.0.0.0/16", "maxLength": 24, "ta": "afrinic" },
+    { "asn": "AS0", "prefix": "1.119.212.0/22", "maxLength": 22, "ta": "apnic" },
+    { "asn": "AS22894", "prefix": "2001:1201::/48", "maxLength": 48, "ta": "lacnic" },
+    { "asn": "AS28498", "prefix": "2001:1201::/48", "maxLength": 48, "ta": "lacnic" }
+  ],
+  "routerKeys": [
+    { "asn": "AS15562", "SKI": "62A7A7BCBE260E24AC3067F2267E8E9E32CE779A", "routerPublicKey": "MFkw", "ta": "ripe" }
+  ],
+  "aspas": [
+    { "customer": "AS278", "providers": ["AS174", "AS3356"], "ta": "lacnic" },
+    { "customer": "AS1228", "providers": ["AS0"], "ta": "afrinic" },
+    { "customer": "AS676", "providers": ["AS6939", "AS174"], "ta": "lacnic" },
+    { "customer": "AS4200000001", "providers": ["AS1299"], "ta": "ripe" }
+  ]
+}

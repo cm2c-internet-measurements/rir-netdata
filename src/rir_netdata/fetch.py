@@ -18,7 +18,7 @@ from tenacity import (
 from rir_netdata import __version__
 from rir_netdata.config import Retry
 
-# No total deadline: the Routinator CSV streams slowly but steadily.
+# No total deadline: Routinator streams its export slowly but steadily.
 TIMEOUT = httpx.Timeout(30.0, read=120.0)
 CHUNK = 1 << 16
 
@@ -45,6 +45,12 @@ def _is_transient(exc: BaseException) -> bool:
     reraise=True,
 )
 def _download(client: httpx.Client, url: str, dest: Path, progress: Progress | None) -> None:
+    """Stream ``url`` into ``dest``.
+
+    httpx asks for compressed transfer (``Accept-Encoding: gzip, deflate``) and decodes it, so
+    ``dest`` (and its sha256) is always the uncompressed content. Progress counts bytes on the
+    wire, which is what ``Content-Length`` measures.
+    """
     part = dest.with_name(dest.name + ".part")
     task = progress.add_task(dest.name, total=None) if progress else None
     try:
@@ -56,7 +62,7 @@ def _download(client: httpx.Client, url: str, dest: Path, progress: Progress | N
                 for chunk in resp.iter_bytes(CHUNK):
                     fh.write(chunk)
                     if progress and task is not None:
-                        progress.advance(task, len(chunk))
+                        progress.update(task, completed=resp.num_bytes_downloaded)
         part.replace(dest)
     finally:
         part.unlink(missing_ok=True)

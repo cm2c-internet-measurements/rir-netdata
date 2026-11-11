@@ -14,11 +14,12 @@ from rich.table import Table
 from rir_netdata import __version__, db, enrich, export, progress, rov
 from rir_netdata.config import Config
 from rir_netdata.fetch import Fetched, fetch, make_client
-from rir_netdata.sources import Tick, delegated, riswhois, rpki
+from rir_netdata.sources import Tick, aspa, delegated, riswhois, rpki
 
-# A loader appends one downloaded file to its table, reporting progress through the Tick, and
-# returns (source serial, rows loaded).
-Loader = Callable[[sqlite3.Connection, Path, Tick], tuple[str | None, int]]
+# A loader appends one downloaded file to its table(s), reporting progress through the Tick, and
+# returns one (meta.source, source serial, rows loaded) per table it filled.
+Loaded = tuple[str, str | None, int]
+Loader = Callable[[sqlite3.Connection, Path, Tick], list[Loaded]]
 
 
 class Source(StrEnum):
@@ -30,22 +31,33 @@ class Source(StrEnum):
 
 @dataclass(frozen=True)
 class Job:
-    name: str  # meta.source
-    table: str
+    name: str  # shown in progress; meta.source comes from the loader
+    tables: tuple[str, ...]
     url: str
     cache_name: str
     max_age: int
     load: Loader
 
 
-def _load_delegated(conn: sqlite3.Connection, path: Path, tick: Tick) -> tuple[str | None, int]:
-    pre, n = delegated.load(conn, path, tick)
-    return pre.serial, n
+def _load_delegated(name: str) -> Loader:
+    def load(conn: sqlite3.Connection, path: Path, tick: Tick) -> list[Loaded]:
+        pre, n = delegated.load(conn, path, tick)
+        return [(name, pre.serial, n)]
+
+    return load
 
 
-def _no_serial(load: Callable[[sqlite3.Connection, Path, Tick], int]) -> Loader:
-    """Adapt a loader for sources whose files carry no serial."""
-    return lambda conn, path, tick: (None, load(conn, path, tick))
+def _load_rpki(conn: sqlite3.Connection, path: Path, tick: Tick) -> list[Loaded]:
+    """One Routinator export feeds roadata (ROAs) and aspadata/aspa_providers (ASPAs)."""
+    data = rpki.read(path)
+    serial = rpki.serial(data)
+    roas = rpki.load_roas(conn, data["roas"], tick)
+    aspas = aspa.load(conn, data.get("aspas") or [], tick)
+    return [("rpki-roas", serial, roas), ("rpki-aspas", serial, aspas)]
+
+
+def _load_riswhois(name: str) -> Loader:
+    return lambda conn, path, tick: [(name, None, riswhois.load(conn, path, tick))]
 
 
 def plan(cfg: Config, source: Source, rirs: list[str]) -> list[Job]:
@@ -54,11 +66,11 @@ def plan(cfg: Config, source: Source, rirs: list[str]) -> list[Job]:
         jobs += [
             Job(
                 f"delegated-{rir}",
-                "numres",
+                ("numres",),
                 cfg.delegated[rir],
                 f"delegated-{rir}-extended-latest",
                 cfg.freshness_seconds.delegated,
-                _load_delegated,
+                _load_delegated(f"delegated-{rir}"),
             )
             for rir in rirs
         ]
@@ -66,22 +78,22 @@ def plan(cfg: Config, source: Source, rirs: list[str]) -> list[Job]:
         jobs.append(
             Job(
                 "rpki",
-                "roadata",
+                ("roadata", "aspadata", "aspa_providers"),
                 cfg.rpki["url"],
-                "rpki-roas.csv",
+                "rpki-routinator.json",
                 cfg.freshness_seconds.rpki,
-                _no_serial(rpki.load),
+                _load_rpki,
             )
         )
     if source in (Source.all, Source.riswhois):
         jobs += [
             Job(
                 f"riswhois-{family}",
-                "riswhois",
+                ("riswhois",),
                 cfg.riswhois[family],
                 f"riswhoisdump.{family.replace('ip', 'IP')}.gz",
                 cfg.freshness_seconds.riswhois,
-                _no_serial(riswhois.load),
+                _load_riswhois(f"riswhois-{family}"),
             )
             for family in ("ipv4", "ipv6")
         ]
@@ -121,7 +133,7 @@ def _build(
     started: str,
     console: Console,
 ) -> tuple[list[db.MetaRow], Counter[str] | None]:
-    tables = list(dict.fromkeys(j.table for j in jobs))
+    tables = list(dict.fromkeys(t for j in jobs for t in j.tables))
     rov_stats = None
     for table in tables:
         db.create_table(conn, table)
@@ -129,11 +141,14 @@ def _build(
     meta = []
     with progress.rows(console) as bars:
         for job, got in zip(jobs, fetched, strict=True):
-            with progress.task(bars, f"load {job.name}", progress.count_lines(got.path)) as tick:
-                serial, rows = job.load(conn, got.path, tick)
-            meta.append(
+            label = f"load {job.name}"
+            if len(job.tables) > 1:  # say what one file feeds, e.g. rpki → roadata, aspadata
+                label += f" → {', '.join(job.tables)}"
+            with progress.task(bars, label, progress.count_lines(got.path)) as tick:
+                loaded = job.load(conn, got.path, tick)
+            meta += [
                 db.MetaRow(
-                    job.name,
+                    source,
                     got.url,
                     got.fetched_at_utc,
                     serial,
@@ -142,21 +157,29 @@ def _build(
                     __version__,
                     started,
                 )
-            )
+                for source, serial, rows in loaded
+            ]
 
         for table in (t for t in tables if t in db.INDEXES):
             with progress.task(bars, f"index {table}", 1) as tick:
                 db.create_indexes(conn, table)
                 tick(1)
 
-        if "roadata" in tables:
+        if "roadata" in tables:  # with aspadata: both come from the rpki source
+            if not enrich.count(conn, "aspadata"):
+                console.print(
+                    "[yellow]warning:[/] no ASPAs in the Routinator export; aspadata is empty"
+                )
             if "numres" in tables:
                 with progress.task(bars, "enrich roadata cc", enrich.count(conn)) as tick:
                     enrich.run(conn, tick)
+                total = enrich.count(conn, "aspadata")
+                with progress.task(bars, "enrich aspadata asid_cc", total) as tick:
+                    enrich.run_aspa(conn, tick)
             else:
                 console.print(
-                    "[yellow]warning:[/] numres not in this run; roadata.cc and "
-                    "roadata.origin_as_cc left NULL"
+                    "[yellow]warning:[/] numres not in this run; roadata.cc, "
+                    "roadata.origin_as_cc and aspadata.asid_cc left NULL"
                 )
 
         if "riswhois" in tables:

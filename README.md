@@ -18,12 +18,13 @@ uv run rir-netdata get        # → var/netdata-20261110.db  (~250 MB, ~3.4M row
 
 ## What's in the database
 
-Each run produces `netdata-YYYYMMDD.db` with four tables. It can optionally also produce **Parquet**, **CSV**, **JSON Lines**, **DuckDB** and **gzipped** copies (see [Other formats](#other-formats)):
+Each run produces `netdata-YYYYMMDD.db` with six tables. It can optionally also produce **Parquet**, **CSV**, **JSON Lines**, **DuckDB** and **gzipped** copies (see [Other formats](#other-formats)):
 
 | Table | What it holds | Built from |
 | --- | --- | --- |
 | **`numres`** | Every IPv4, IPv6 and ASN delegation from the five Regional Internet Registries: holder country, status, date, and holder id | The *delegated-extended* statistics files of [AFRINIC](https://www.afrinic.net), [APNIC](https://www.apnic.net), [ARIN](https://www.arin.net), [LACNIC](https://www.lacnic.net) and [RIPE NCC](https://www.ripe.net) |
-| **`roadata`** | Every validated RPKI ROA from all five trust anchors, tagged with the country of the prefix and of its origin AS | A [Routinator](https://routinator.docs.nlnetlabs.nl/) CSV export |
+| **`roadata`** | Every validated RPKI ROA from all five trust anchors, tagged with the country of the prefix and of its origin AS | The JSON export of a [Routinator](https://routinator.docs.nlnetlabs.nl/) RPKI validator |
+| **`aspadata`**, **`aspa_providers`** | Every validated ASPA (which upstream providers an AS authorizes), with the country of the customer AS. `aspa_providers` has one row per customer–provider pair, for joins | The same Routinator export |
 | **`riswhois`** | Which AS originates each prefix in the global BGP table, how many RIS peers see it, and its **RPKI validity** (`valid` / `invalid` / `notfound`) | [RIPE RIS](https://ris.ripe.net) whois dumps, IPv4 and IPv6 |
 | **`meta`** | Provenance: the URL, fetch time, source serial, row count and SHA-256 of every input file | The run itself |
 
@@ -52,7 +53,7 @@ Every row also gets **convenience columns**, so range and size questions become 
 flowchart LR
     subgraph Sources
         D["5 × RIR delegated-extended"]
-        R["Routinator ROA CSV"]
+        R["Routinator JSON (ROAs)"]
         W["RIPE RIS whois dumps"]
     end
     D & R & W -->|"download<br/>(cached, with retries)"| P["parse + derive<br/>istart / iend / prefix / equiv"]
@@ -122,7 +123,7 @@ cache_dir = "/var/cache/netdata"
 attempts = 5
 
 [sources.rpki]
-url = "https://my-validator.example.net/csv"
+url = "https://my-validator.example.net/json"   # a Routinator JSON export
 ```
 
 Every key is optional, and a misspelled key is an error rather than being silently ignored. All the settings are listed in [`config.py`](src/rir_netdata/config.py).
@@ -178,6 +179,10 @@ WHERE cc <> origin_as_cc AND 'ZZ' NOT IN (cc, origin_as_cc);
 
 -- RPKI-invalid routes in BGP, and why (wrong origin AS, too specific, or an AS-set)
 SELECT rovreason, count(*) FROM riswhois WHERE rovstatus = 'invalid' GROUP BY rovreason;
+
+-- Which ASes authorize AS174 as an upstream provider (ASPA), by country?
+SELECT a.asid_cc, count(*) FROM aspa_providers p JOIN aspadata a USING (asid)
+WHERE p.provider = 174 GROUP BY 1 ORDER BY 2 DESC;
 
 -- Which inputs was this file built from?
 SELECT source, fetched_at_utc, source_serial, row_count FROM meta;

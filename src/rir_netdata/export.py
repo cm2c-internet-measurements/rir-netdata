@@ -69,6 +69,18 @@ SCHEMA: dict[str, dict[str, str]] = {
         "origin_as_cc": VARCHAR,
         "equiv2": BIGINT,
     },
+    "aspadata": {
+        "id": BIGINT,
+        "asid": BIGINT,
+        "providers": VARCHAR,
+        "ta": VARCHAR,
+        "asid_cc": VARCHAR,
+    },
+    "aspa_providers": {
+        "asid": BIGINT,
+        "provider": BIGINT,
+        "ta": VARCHAR,
+    },
     "riswhois": {
         "id": BIGINT,
         "origin_as": VARCHAR,

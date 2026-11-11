@@ -1,5 +1,7 @@
+import json
 import sqlite3
 
+from conftest import FIXTURES
 from conftest import built_db as _db
 from conftest import run_get as _get
 
@@ -44,13 +46,37 @@ def test_full_run_builds_all_tables(serve, tmp_path):
     assert result.exit_code == 0, result.output
     with sqlite3.connect(_db(tmp_path)) as conn:
         tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        assert tables == {"meta", "numres", "roadata", "riswhois"}
+        assert tables == {"meta", "numres", "roadata", "aspadata", "aspa_providers", "riswhois"}
         meta = dict(conn.execute("SELECT source, row_count FROM meta").fetchall())
-        assert meta["rpki"] == 12
+        assert meta["rpki-roas"] == 12
+        assert meta["rpki-aspas"] == 4
         assert meta["riswhois-ipv4"] == 5
         assert conn.execute("SELECT count(*) FROM riswhois").fetchone()[0] == (
             meta["riswhois-ipv4"] + meta["riswhois-ipv6"]
         )
+
+
+def test_rpki_meta_has_routinator_generation_time(serve, tmp_path):
+    assert _get("--source", "rpki").exit_code == 0
+    with sqlite3.connect(_db(tmp_path)) as conn:
+        rows = conn.execute("SELECT source, url, source_serial FROM meta").fetchall()
+    url = config.DEFAULT_RPKI["url"]
+    assert rows == [
+        ("rpki-roas", url, "2026-11-10T15:20:32Z"),
+        ("rpki-aspas", url, "2026-11-10T15:20:32Z"),
+    ]
+
+
+def test_rpki_csv_instead_of_json_fails_clearly(serve, tmp_path):
+    url = "https://rpki.example.net/csv"
+    (tmp_path / "netdata.toml").write_text(
+        (tmp_path / "netdata.toml").read_text() + f'[sources.rpki]\nurl = "{url}"\n'
+    )
+    serve.routes[url] = b"ASN,IP Prefix,Max Length,Trust Anchor\nAS1,1.0.0.0/24,24,apnic\n"
+    result = _get("--source", "rpki")
+    assert result.exit_code == 1
+    assert "Routinator JSON" in result.output
+    assert not list((tmp_path / "out").glob("*"))
 
 
 def test_rpki_failure_writes_nothing(serve, tmp_path):
@@ -67,12 +93,46 @@ def test_full_run_enriches_roadata(serve, tmp_path):
         assert cc == "GT"  # lacnic|GT|ipv4|2.152.0.0|1024|...|allocated in the fixture
 
 
+def test_full_run_loads_and_enriches_aspas(serve, tmp_path):
+    result = _get()
+    assert result.exit_code == 0, result.output
+    assert "load rpki → roadata, aspadata, aspa_providers" in result.output
+    assert "enrich aspadata asid_cc" in result.output
+    with sqlite3.connect(_db(tmp_path)) as conn:
+        rows = conn.execute("SELECT asid, providers, ta, asid_cc FROM aspadata ORDER BY id")
+        assert rows.fetchall() == [
+            (278, "174,3356", "lacnic", "MX"),  # lacnic|MX|asn|278 in the fixture
+            (1228, "0", "afrinic", "ZA"),  # AS0: declares no providers
+            (676, "174,6939", "lacnic", "AR"),  # sorted
+            (4200000001, "1299", "ripe", "ZZ"),  # in no delegated file
+        ]
+        pairs = conn.execute("SELECT asid FROM aspa_providers WHERE provider = 174 ORDER BY 1")
+        assert pairs.fetchall() == [(278,), (676,)]
+        indexes = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='index'")}
+        assert "aspa_providers_provider" in indexes
+
+
 def test_rpki_only_run_skips_enrichment(serve, tmp_path):
     result = _get("--source", "rpki")
     assert result.exit_code == 0, result.output
-    assert "left NULL" in result.output
+    assert "left NULL" in result.output and "asid_cc" in result.output
     with sqlite3.connect(_db(tmp_path)) as conn:
         assert conn.execute("SELECT count(*) FROM roadata WHERE cc IS NOT NULL").fetchone()[0] == 0
+        assert conn.execute("SELECT count(*) FROM aspadata").fetchone()[0] == 4
+        filled = conn.execute("SELECT count(*) FROM aspadata WHERE asid_cc IS NOT NULL")
+        assert filled.fetchone()[0] == 0
+
+
+def test_export_without_aspas_warns(serve, tmp_path):
+    body = json.loads((FIXTURES / "rpki.json").read_text())
+    del body["aspas"]
+    serve.routes[config.DEFAULT_RPKI["url"]] = json.dumps(body).encode()
+    result = _get("--source", "rpki")
+    assert result.exit_code == 0, result.output
+    assert "no ASPAs" in result.output
+    with sqlite3.connect(_db(tmp_path)) as conn:
+        meta = dict(conn.execute("SELECT source, row_count FROM meta").fetchall())
+    assert meta == {"rpki-roas": 12, "rpki-aspas": 0}
 
 
 def test_full_run_validates_riswhois(serve, tmp_path):
