@@ -44,6 +44,9 @@ def test_ipv4_row(conn):
         "iend": 251691007,
         "type": "ipv4",
         "pfxlen": 18,
+        "rovstatus": None,  # filled by the ROV step, not the loader
+        "rovreason": None,
+        "rov_roas": None,
     }
 
 

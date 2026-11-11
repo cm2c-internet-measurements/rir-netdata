@@ -11,7 +11,7 @@ The staged plan for the Python 3 rewrite described in `SPEC.md`. Each stage ends
 | 4 | Delegated → `numres` | done |
 | 5 | RPKI → `roadata`, RIS → `riswhois` | done |
 | 6 | CC enrichment | done |
-| 7 | Parity, packaging, cleanup | done (PR open) |
+| 7 | Parity, packaging, cleanup | done (#6, v2.0.0) |
 
 ## Stage 0: Skeleton
 

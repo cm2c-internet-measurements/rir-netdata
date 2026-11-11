@@ -19,6 +19,7 @@ A batch pipeline that downloads the five RIRs' delegated-extended files, a Routi
 
 - Python ≥ 3.12, managed with **uv** (`pyproject.toml`, `uv.lock` committed).
 - CLI: **typer** + **rich** (colored output, progress bars). Console script: `rir-netdata`.
+- Exports: **DuckDB** (`read_csv` with explicit types → `COPY … TO` parquet/json, `CREATE TABLE … AS` in a `.duckdb`). Never use its `sqlite` extension, because it downloads at runtime.
 - Tabular transforms: **petl** (stream rows with `fromcsv`/`select`/`cut`, derive columns in one `rowmap`, load with `appenddb`). Create tables with explicit DDL from SPEC §5 first; never let a library infer the schema.
 - IP math: stdlib `ipaddress`. HTTP: `httpx`. Retries: **tenacity** decorators. Config: TOML via stdlib `tomllib`.
 - Tests: **pytest**, offline only, using small fixture files under `tests/fixtures/`. Lint/format: **ruff**.
@@ -45,6 +46,8 @@ src/rir_netdata/
   addr.py         # prefix → istart/iend/type/pfxlen/equiv/equiv2 (single implementation, shared)
   sources/        # delegated.py, rpki.py, riswhois.py — parse + derive, one per source
   enrich.py       # roadata cc / origin_as_cc
+  rov.py          # riswhois rovstatus / rovreason / rov_roas (RFC 6811, SPEC §4.5)
+  export.py       # typed CSV → Parquet / .csv.tar.gz / .jsonl.tar.gz / .duckdb, plus .db.gz; staged + published atomically (SPEC §5.7)
   progress.py     # rich progress bars (downloads, row loads, index, enrichment)
   pipeline.py     # orchestration: download all, then build atomically
   db.py           # DDL, atomic temp-file build + rename, meta table
@@ -61,6 +64,8 @@ etc/*_region.json # per-region country lists, not used by the pipeline (yet)
 - **Never publish a partial db.** Build into a temp file, rename only on full success, and exit non-zero otherwise.
 - Tests and CI must never hit the network. Network sources are mocked or read from fixtures.
 - No new data sources or features without a SPEC.md update first.
+- The export typed schema (`export.SCHEMA`) and the SPEC §5.7 table are kept in sync by a test. Change both together.
+- Features are tracked as GitHub issues (sub-issues per piece). Record decisions in the issue, and reference it in commits and PRs.
 
 ## Gotchas in the source data
 
@@ -72,6 +77,8 @@ etc/*_region.json # per-region country lists, not used by the pipeline (yet)
 - The Routinator CSV has a header row, and `origin_as` looks like `AS28000`.
 - RIS dumps are gzipped, tab-separated, and have `%` comment lines and a blank line. `origin_as` can be an AS-set like `{40179}`, and `::/0` and other prefixes outside `2000::/3` appear.
 - The CC enrichment must match on address family and status `allocated`/`assigned`, and default to `'ZZ'`. Its fast nearest-start lookup is exact only because allocated/assigned delegations don't overlap within a type. If that ever changes, `enrich.py` needs revisiting.
+- ROV must compare **full prefixes**, never `istart`/`iend` alone: IPv6 `istart` is in /64 units, and ROAs and routes go up to /128. ROAs overlap heavily (nested), so the nearest-start trick from `enrich.py` does **not** apply. `rov.py` indexes ROAs by (family, length, network) instead.
+- To check ROV against Routinator after changing `rov.py`, run `uv run python scripts/rov_crosscheck.py var/netdata-*.db`. It hits the network.
 
 ## Conventions
 

@@ -1,12 +1,13 @@
 [project]
 name = "rir-netdata"
-version = "2.0.0"
+version = "2.1.0"
 description = "Builds a daily SQLite snapshot of RIR delegations, RPKI ROAs and RIS whois data."
 readme = "README.md"
 license = "BSD-2-Clause"
 authors = [{ name = "Carlos M. Martinez", email = "carlos@lacnic.net" }]
 requires-python = ">=3.12"
 dependencies = [
+    "duckdb>=2.0",
     "httpx>=0.27",
     "petl>=1.7",
     "rich>=13.7",
