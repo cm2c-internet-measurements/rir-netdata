@@ -1,4 +1,5 @@
 import csv
+import gzip
 import re
 import sqlite3
 import tarfile
@@ -30,19 +31,36 @@ def _pq(sql: str):
         return con.execute(sql).fetchall()
 
 
+def _duck(path: Path, sql: str):
+    with duckdb.connect(path, read_only=True) as con:
+        return con.execute(sql).fetchall()
+
+
+def _duck_types(path: Path, table: str) -> dict[str, str]:
+    return dict(
+        _duck(
+            path,
+            f"SELECT column_name, data_type FROM duckdb_columns() WHERE table_name = '{table}'",
+        )
+    )
+
+
 class TestParseFormats:
     def test_comma_separated_and_repeated(self):
         got = export.parse_formats(["parquet,csv", "parquet"])
         assert got == [export.Format.parquet, export.Format.csv]
 
+    def test_all_implemented_formats(self):
+        got = export.parse_formats(["parquet,csv,duckdb,sqlite.gz"])
+        assert got == list(export.Format)
+
     def test_empty(self):
         assert export.parse_formats([]) == []
         assert export.parse_formats([" , "]) == []
 
-    @pytest.mark.parametrize(("fmt", "issue"), [("jsonl", 12), ("duckdb", 13), ("sqlite.gz", 14)])
-    def test_planned_formats_point_to_their_issue(self, fmt, issue):
-        with pytest.raises(export.ExportError, match=f"#{issue}"):
-            export.parse_formats([fmt])
+    def test_planned_formats_point_to_their_issue(self):
+        with pytest.raises(export.ExportError, match="#12"):
+            export.parse_formats(["jsonl"])
 
     def test_unknown(self):
         with pytest.raises(export.ExportError, match="unknown export format 'xlsx'"):
@@ -155,6 +173,75 @@ class TestExportCommand:
         with tarfile.open(out / "netdata-20261110.csv.tar.gz") as tar:
             assert sorted(tar.getnames()) == ["meta.csv", "numres.csv", "roadata.csv"]
 
+    def test_duckdb(self, small_db, tmp_path):
+        result = runner.invoke(app, ["export", str(small_db), "--format", "duckdb"])
+        assert result.exit_code == 0, result.output
+        out = tmp_path / "netdata-20261110"
+        # a checkpointed single file: no .wal left behind, no Parquet or CSV
+        assert [p.name for p in out.iterdir()] == ["netdata-20261110.duckdb"]
+        duck = out / "netdata-20261110.duckdb"
+        tables = _duck(duck, "SELECT table_name FROM duckdb_tables() ORDER BY 1")
+        assert tables == [("meta",), ("numres",), ("roadata",)]
+        for t in ("numres", "roadata", "meta"):
+            assert _duck_types(duck, t) == export.SCHEMA[t]  # same columns, order and types
+        assert _duck(duck, "SELECT orgid, date, cc FROM numres ORDER BY id") == [
+            ("71316", 20000101, "UY"),
+            (None, None, None),
+            ('d98c,"q"', None, "US"),
+        ]
+        assert _duck(duck, "SELECT equiv, equiv2, origin_as2 FROM roadata") == [
+            (1.52587890625e-05, 65536, 28000)
+        ]
+
+    def test_duckdb_matches_parquet(self, small_db, tmp_path):
+        args = ["export", str(small_db), "--format", "duckdb,parquet"]
+        assert runner.invoke(app, args).exit_code == 0
+        out = tmp_path / "netdata-20261110"
+        with duckdb.connect(out / "netdata-20261110.duckdb", read_only=True) as con:
+            for t in ("numres", "roadata", "meta"):
+                diff = con.execute(
+                    f"SELECT count(*) FROM ((FROM {t} EXCEPT ALL FROM '{out}/{t}.parquet')"
+                    f" UNION ALL (FROM '{out}/{t}.parquet' EXCEPT ALL FROM {t}))"
+                ).fetchone()[0]
+                assert diff == 0, t
+
+    def test_sqlite_gz_next_to_the_db(self, small_db, tmp_path):
+        result = runner.invoke(app, ["export", str(small_db), "--format", "sqlite.gz"])
+        assert result.exit_code == 0, result.output
+        gz = tmp_path / "netdata-20261110.db.gz"
+        assert gzip.decompress(gz.read_bytes()) == small_db.read_bytes()
+        # nothing else to put in it, so no export directory
+        assert sorted(p.name for p in tmp_path.iterdir()) == [small_db.name, gz.name]
+        assert gz.name in result.output
+
+    def test_sqlite_gz_keeps_the_original_name(self, small_db, tmp_path):
+        assert runner.invoke(app, ["export", str(small_db), "--format", "sqlite.gz"]).exit_code == 0
+        header = (tmp_path / "netdata-20261110.db.gz").read_bytes()
+        assert b"netdata-20261110.db\0" in header[:64]  # FNAME, as gzip(1) writes it
+
+    def test_sqlite_gz_with_output_dir_and_others(self, small_db, tmp_path):
+        args = [
+            "export",
+            str(small_db),
+            "--format",
+            "sqlite.gz,csv",
+            "--output-dir",
+            str(tmp_path / "x"),
+        ]
+        assert runner.invoke(app, args).exit_code == 0
+        assert sorted(p.name for p in (tmp_path / "x").iterdir()) == [
+            "netdata-20261110",
+            "netdata-20261110.db.gz",
+        ]
+        assert [p.name for p in (tmp_path / "x" / "netdata-20261110").iterdir()] == [
+            "netdata-20261110.csv.tar.gz"
+        ]
+
+    def test_sqlite_gz_alone_leaves_an_earlier_export_dir(self, small_db, tmp_path):
+        assert runner.invoke(app, ["export", str(small_db), "--format", "csv"]).exit_code == 0
+        assert runner.invoke(app, ["export", str(small_db), "--format", "sqlite.gz"]).exit_code == 0
+        assert (tmp_path / "netdata-20261110" / "netdata-20261110.csv.tar.gz").exists()
+
     def test_legacy_db_without_new_tables_or_columns(self, tmp_path):
         path = tmp_path / "netdata-20170101.db"
         with sqlite3.connect(path) as conn:
@@ -244,11 +331,65 @@ class TestGetWithExport:
         assert result.exit_code == 1
         assert list((tmp_path / "out").iterdir()) == []
 
+    def test_duckdb_and_sqlite_gz(self, serve, tmp_path):
+        result = run_get("--export", "duckdb,sqlite.gz")
+        assert result.exit_code == 0, result.output
+        db_path = built_db(tmp_path)
+        stem = db_path.stem
+        assert sorted(p.name for p in (tmp_path / "out").iterdir()) == [
+            stem,
+            f"{stem}.db",
+            f"{stem}.db.gz",
+        ]
+        gz = tmp_path / "out" / f"{stem}.db.gz"
+        assert gzip.decompress(gz.read_bytes()) == db_path.read_bytes()
+        duck = tmp_path / "out" / stem / f"{stem}.duckdb"
+        with sqlite3.connect(db_path) as conn:
+            for t in export.tables(conn):
+                n = conn.execute(f"SELECT count(*) FROM {t}").fetchone()[0]
+                assert _duck(duck, f"SELECT count(*) FROM {t}") == [(n,)]
+            rov = conn.execute(
+                "SELECT rovstatus, count(*) FROM riswhois GROUP BY 1 ORDER BY 1"
+            ).fetchall()
+        assert _duck(duck, "SELECT rovstatus, count(*) FROM riswhois GROUP BY 1 ORDER BY 1") == rov
+
+    def test_sqlite_gz_alone(self, serve, tmp_path):
+        assert run_get("--source", "delegated", "--export", "sqlite.gz").exit_code == 0
+        assert sorted(p.suffix for p in (tmp_path / "out").iterdir()) == [".db", ".gz"]
+
+    def test_gzip_failure_publishes_nothing(self, serve, tmp_path, monkeypatch):
+        def boom(*a, **k):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(export, "gzip_file", boom)
+        result = run_get("--source", "delegated", "--export", "parquet,sqlite.gz")
+        assert result.exit_code == 1
+        assert list((tmp_path / "out").iterdir()) == []
+
     def test_planned_format_rejected_before_downloading(self, serve, tmp_path):
-        result = run_get("--export", "duckdb")
+        result = run_get("--export", "jsonl")
         assert result.exit_code == 2
-        assert "#13" in result.output
+        assert "#12" in result.output
         assert not (tmp_path / "cache").exists()
+
+
+class TestStage:
+    def test_failed_publish_takes_back_the_files_beside(self, tmp_path):
+        stage = export.Stage(tmp_path / "netdata-20261110")
+        (stage.path / "netdata-20261110.db.gz").write_bytes(b"gz")
+        stage.beside.append("netdata-20261110.db.gz")
+        (stage.path / "numres.parquet").write_bytes(b"pq")
+        (tmp_path / "netdata-20261110").write_text("a file where the export dir goes")
+        with pytest.raises(NotADirectoryError):
+            stage.publish()
+        assert not (tmp_path / "netdata-20261110.db.gz").exists()
+
+    def test_only_beside_publishes_no_dir(self, tmp_path):
+        stage = export.Stage(tmp_path / "netdata-20261110")
+        (stage.path / "netdata-20261110.db.gz").write_bytes(b"gz")
+        stage.beside.append("netdata-20261110.db.gz")
+        assert stage.publish() == [tmp_path / "netdata-20261110.db.gz"]
+        assert [p.name for p in tmp_path.iterdir()] == ["netdata-20261110.db.gz"]
 
 
 def test_export_dir_naming():

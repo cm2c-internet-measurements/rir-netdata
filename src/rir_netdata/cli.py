@@ -1,6 +1,7 @@
 """Command-line interface."""
 
 import sqlite3
+from contextlib import closing
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
@@ -52,7 +53,7 @@ def get(
             "--export",
             help="Also export to these formats (comma-separated or repeated): "
             + ", ".join(f.value for f in export.Format)
-            + ". Written to <output-dir>/<basename>-YYYYMMDD/.",
+            + ". Written to <output-dir>/<basename>-YYYYMMDD/; sqlite.gz goes next to the db.",
         ),
     ] = None,
 ) -> None:
@@ -87,7 +88,9 @@ def export_cmd(
     ],
     output_dir: Annotated[
         Path | None,
-        typer.Option(help="Where the export directory goes. Default: next to the database."),
+        typer.Option(
+            help="Where the export directory (and the .db.gz) go. Default: next to the database."
+        ),
     ] = None,
 ) -> None:
     """Export an existing database to other formats."""
@@ -107,13 +110,11 @@ def export_cmd(
     console.print(f"[bold]rir-netdata {__version__}[/] export {database} → {final}/")
     stage = export.Stage(final)
     try:
-        with sqlite3.connect(f"file:{database}?mode=ro", uri=True) as conn:
+        with closing(sqlite3.connect(f"file:{database}?mode=ro", uri=True)) as conn:
             pipeline.write_exports(conn, formats, stage, console)
-        stage.publish()
+        published = pipeline.publish_exports(formats, database, stage, console)
     except Exception as e:
         stage.discard()
         console.print(f"[red bold]export failed, nothing written:[/] {type(e).__name__}: {e}")
         raise typer.Exit(1) from e
-    console.print(
-        f"[bold]exports[/] {final}/: {', '.join(sorted(p.name for p in final.iterdir()))}"
-    )
+    pipeline.print_exports(console, stage, published)

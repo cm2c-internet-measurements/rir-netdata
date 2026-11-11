@@ -163,7 +163,7 @@ The roadata IPv6 formula counts anything longer than a /64 as one /64, so a /128
 
 `roadata.equiv2` (new) is the exact integer size. For **IPv4** it is the number of whole /24s, the same as `equiv`. For **IPv6** it is the number of whole **/64s**: `2**(64 - pfxlen)`, or 0 for prefixes longer than /64 and for anything outside `2000::/3`. So a /48 is 65536, a /32 is 4294967296 and a /128 is 0. Bad prefixes get 0. `equiv2` is the last column, so positional `SELECT *` consumers are unaffected.
 
-### 5.7 Exports (since 2.1, issues #7, #10, #11)
+### 5.7 Exports (since 2.1)
 
 The SQLite database is always produced and remains the source of truth. Exports are optional copies of it, in other formats, requested with `get --export …` or made afterwards from any existing db with `rir-netdata export DB --format …`.
 
@@ -172,10 +172,12 @@ The SQLite database is always produced and remains the source of truth. Exports 
 | Parquet | `parquet` | `<db stem>/<table>.parquet`, one file per table, zstd | implemented (#10) |
 | CSV | `csv` | `<db stem>/<db stem>.csv.tar.gz`, containing `<table>.csv` per table | implemented (#11) |
 | JSON Lines | `jsonl` | `<db stem>/<db stem>.jsonl.tar.gz` | planned (#12) |
-| DuckDB | `duckdb` | `<db stem>/<db stem>.duckdb` | planned (#13) |
-| Compressed SQLite | `sqlite.gz` | `<db stem>.db.gz`, next to the `.db` | planned (#14) |
+| DuckDB | `duckdb` | `<db stem>/<db stem>.duckdb`, with every table | implemented (#13) |
+| Compressed SQLite | `sqlite.gz` | `<db stem>.db.gz`, next to the `.db` | implemented (#14) |
 
-`<db stem>` is the database file name without `.db`, so `var/netdata-20261110.db` exports into `var/netdata-20261110/`. Every table present in the db is exported, `meta` included.
+`<db stem>` is the database file name without `.db`, so `var/netdata-20261110.db` exports into `var/netdata-20261110/`. Every table present in the db is exported, `meta` included. With `rir-netdata export --output-dir DIR`, both the export directory and the `.db.gz` go in `DIR`. A run that asks only for `sqlite.gz` creates no export directory.
+
+**`sqlite.gz`** is the finished `.db` file, byte for byte, as plain gzip (level 6, the `gzip(1)` default), readable with `gunzip` or `zcat`. The gzip header keeps the original file name. It is not typed, because it is the SQLite file itself; everything below applies to the other formats.
 
 **Typed schema.** Exports have one type per column, unlike SQLite. Values are cleaned on the way out:
 
@@ -200,9 +202,11 @@ Columns not listed below, e.g. from a legacy db, are exported as VARCHAR. In a l
 - RFC 4180 quoting, applied only when needed;
 - **an empty field means NULL**. This is lossless, because no exported value is an empty string.
 
-**How they're made.** Python streams each table out of SQLite with the typed cleanup into CSV. DuckDB reads those CSVs with the explicit types above and writes Parquet. No DuckDB extension and no network access are needed.
+**How they're made.** Python streams each table out of SQLite with the typed cleanup into CSV. DuckDB reads those CSVs with the explicit types above and writes Parquet and the DuckDB database. No DuckDB extension and no network access are needed.
 
-**Atomicity.** Exports are staged in a temp directory next to their destination. A run publishes the export directory and the `.db` only when **everything**, every requested format included, has succeeded. If an export fails, nothing is published, not even the `.db`, and the run exits non-zero. A rerun on the same day replaces the earlier export directory.
+**DuckDB database.** The tables have the same columns, order and types as Parquet. They have no primary key and no indexes: DuckDB's per-block min/max statistics already serve range lookups like `istart <= x AND iend >= x`, and an index like SQLite's `numres (type, istart, iend)` made the file 50% larger without making that query faster (#13).
+
+**Atomicity.** Exports are staged in a temp directory next to their destination. A run publishes the export directory, the `.db.gz` and the `.db` only when **everything**, every requested format included, has succeeded. If an export fails, nothing is published, not even the `.db`, and the run exits non-zero. A rerun on the same day replaces the earlier export directory.
 
 ## 6. Operational behavior
 
@@ -230,7 +234,7 @@ Columns not listed below, e.g. from a legacy db, are exported as VARCHAR. In a l
 13. IPv6 global unicast is tested with real `2000::/3` containment. Legacy tested `prefix.startswith("2")`, which wrongly zeroed `3xxx:` prefixes and computed values for short forms like `2a0::` (= `02a0::`). This affected 4 RIS rows on 2026-11-10.
 14. `roadata.cc` and `roadata.origin_as_cc` actually exist in the published file. The legacy README documented them, but the production databases never had these columns, because the manual enrichment SQL was never run there.
 15. `riswhois.rovstatus`, `rovreason` and `rov_roas` (since 2.1, issue #8) are new. Legacy had no route origin validation (§4.5).
-16. Exports to Parquet and CSV (since 2.1, §5.7) are new. Legacy only produced the SQLite file.
+16. Exports to Parquet, CSV, DuckDB and `.db.gz` (since 2.1, §5.7) are new. Legacy only produced the SQLite file.
 
 ## 8. Open questions
 

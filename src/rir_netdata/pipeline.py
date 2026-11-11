@@ -183,6 +183,9 @@ def export_dir(target: Path) -> Path:
 def write_exports(
     conn: sqlite3.Connection, formats: list[export.Format], stage: export.Stage, console: Console
 ) -> None:
+    """Stage the typed exports (everything but ``sqlite.gz``, see ``write_db_gz``)."""
+    if not export.TYPED.intersection(formats):
+        return
     with progress.rows(console) as bars:
         bad = export.run(
             conn,
@@ -195,6 +198,31 @@ def write_exports(
         console.print(
             f"[yellow]warning:[/] {table}: {n:,} values didn't fit their type; exported as NULL"
         )
+
+
+def write_db_gz(db_path: Path, stage: export.Stage, console: Console) -> None:
+    """Stage ``<stem>.db.gz``; ``db_path`` must be the finished, closed database file."""
+    with progress.rows(console) as bars:
+        export.gzip_db(
+            db_path, stage, lambda description, total: progress.task(bars, description, total)
+        )
+
+
+def publish_exports(
+    formats: list[export.Format], db_path: Path, stage: export.Stage, console: Console
+) -> list[Path]:
+    """Finish the staged exports of the closed ``db_path`` and publish them, all or nothing."""
+    if export.Format.sqlite_gz in formats:
+        write_db_gz(db_path, stage, console)
+    return stage.publish()
+
+
+def print_exports(console: Console, stage: export.Stage, published: list[Path]) -> None:
+    parts = [str(p) for p in published if p.parent != stage.final]
+    inside = [p.name for p in published if p.parent == stage.final]
+    if inside:
+        parts.append(f"{stage.final}/: {', '.join(inside)}")
+    console.print(f"[bold]exports[/] {'; '.join(parts)}")
 
 
 def run(
@@ -223,7 +251,7 @@ def run(
                 write_exports(conn, formats, stage, console)
         published = True
         if stage:
-            stage.publish()
+            exported = publish_exports(formats, target, stage, console)
     except BaseException:
         if stage:
             stage.discard()
@@ -231,21 +259,15 @@ def run(
             target.unlink(missing_ok=True)
         raise
 
-    _summary(console, meta, target)
-    if rov_stats:
-        total = sum(rov_stats.values())
-        parts = ", ".join(
-            f"{s} {rov_stats[s]:,} ({rov_stats[s] / total:.1%})"
-            for s in (rov.VALID, rov.INVALID, rov.NOTFOUND)
-        )
-        console.print(f"[bold]ROV[/] riswhois: {parts}")
+    _summary(console, meta, target, rov_stats)
     if stage:
-        files = sorted(p.name for p in stage.final.iterdir())
-        console.print(f"[bold]exports[/] {stage.final}/: {', '.join(files)}")
+        print_exports(console, stage, exported)
     return target
 
 
-def _summary(console: Console, meta: list[db.MetaRow], target: Path) -> None:
+def _summary(
+    console: Console, meta: list[db.MetaRow], target: Path, rov_stats: Counter[str] | None
+) -> None:
     t = Table(title=f"[bold]{target}", title_justify="left")
     t.add_column("source", style="cyan")
     t.add_column("rows", justify="right")
@@ -253,3 +275,10 @@ def _summary(console: Console, meta: list[db.MetaRow], target: Path) -> None:
     for m in meta:
         t.add_row(m.source, f"{m.row_count:,}", m.source_serial or "")
     console.print(t)
+    if rov_stats:
+        total = sum(rov_stats.values())
+        parts = ", ".join(
+            f"{s} {rov_stats[s]:,} ({rov_stats[s] / total:.1%})"
+            for s in (rov.VALID, rov.INVALID, rov.NOTFOUND)
+        )
+        console.print(f"[bold]ROV[/] riswhois: {parts}")
