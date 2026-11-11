@@ -3,6 +3,8 @@ import gzip
 import json
 import re
 import sqlite3
+import subprocess
+import sys
 import tarfile
 from pathlib import Path
 
@@ -451,3 +453,10 @@ def test_typed_schema_matches_spec():
     for table, cols in re.findall(r"^\| `(\w+)` \| (`.+) \|$", section, re.M):
         documented[table] = dict(re.findall(r"`(\w+)` (\w+)", cols))
     assert documented == export.SCHEMA
+
+
+def test_duckdb_loaded_only_for_exports():
+    # DuckDB's wheels need specific CPU features (2.0: AVX2); a run without exports must work
+    # on any CPU, so nothing on the import path of the CLI may load it.
+    code = "import sys, rir_netdata.cli, rir_netdata.pipeline; sys.exit('duckdb' in sys.modules)"
+    assert subprocess.run([sys.executable, "-c", code]).returncode == 0
