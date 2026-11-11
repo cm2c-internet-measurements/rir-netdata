@@ -24,6 +24,6 @@
     { "customer": "AS278", "providers": ["AS174", "AS3356"], "ta": "lacnic" },
     { "customer": "AS1228", "providers": ["AS0"], "ta": "afrinic" },
     { "customer": "AS676", "providers": ["AS6939", "AS174"], "ta": "lacnic" },
-    { "customer": "AS64512", "providers": ["AS1299"], "ta": "ripe" }
+    { "customer": "AS4200000001", "providers": ["AS1299"], "ta": "ripe" }
   ]
 }

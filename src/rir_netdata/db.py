@@ -21,6 +21,11 @@ DDL = {
         " type VARCHAR(5), pfxlen INTEGER, equiv INTEGER, cc CHAR(2), origin_as_cc CHAR(2),"
         " equiv2 INTEGER);"
     ),
+    "aspadata": (
+        "CREATE TABLE aspadata (id INTEGER PRIMARY KEY, asid integer, providers text, ta text,"
+        " asid_cc CHAR(2));"
+    ),
+    "aspa_providers": "CREATE TABLE aspa_providers (asid integer, provider integer, ta text);",
     "riswhois": (
         "CREATE TABLE riswhois (id INTEGER PRIMARY KEY, origin_as text, prefix text,"
         " viewed_by integer, istart UNSIGNED BIG INT, iend UNSIGNED BIG INT, type VARCHAR(5),"
@@ -35,6 +40,7 @@ DDL = {
 # Created after the bulk load, which is much faster than maintaining them during inserts.
 INDEXES = {
     "numres": ["CREATE INDEX numres_type_range ON numres (type, istart, iend);"],
+    "aspa_providers": ["CREATE INDEX aspa_providers_provider ON aspa_providers (provider);"],
 }
 
 

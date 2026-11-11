@@ -4,7 +4,7 @@ Guidance for Claude Code in this repo. **`SPEC.md` is the source of truth** for 
 
 ## What this is
 
-A batch pipeline that downloads the five RIRs' delegated-extended files, Routinator's JSON export (ROAs) and the RIPE RIS whois dumps. It enriches them and writes one SQLite file per run (`var/netdata-YYYYMMDD.db`), which is published as open data.
+A batch pipeline that downloads the five RIRs' delegated-extended files, Routinator's JSON export (ROAs and ASPAs) and the RIPE RIS whois dumps. It enriches them and writes one SQLite file per run (`var/netdata-YYYYMMDD.db`), which is published as open data.
 
 ## History
 
@@ -44,8 +44,8 @@ src/rir_netdata/
   config.py       # defaults + TOML override (all source URLs live here)
   fetch.py        # cached downloads with tenacity retries
   addr.py         # prefix → istart/iend/type/pfxlen/equiv/equiv2 (single implementation, shared)
-  sources/        # delegated.py, rpki.py, riswhois.py — parse + derive, one per source
-  enrich.py       # roadata cc / origin_as_cc
+  sources/        # delegated.py, rpki.py (ROAs), aspa.py (ASPAs), riswhois.py — parse + derive
+  enrich.py       # roadata cc / origin_as_cc, aspadata asid_cc
   rov.py          # riswhois rovstatus / rovreason / rov_roas (RFC 6811, SPEC §4.5)
   export.py       # typed CSV → Parquet / .csv.tar.gz / .jsonl.tar.gz / .duckdb, plus .db.gz; staged + published atomically (SPEC §5.7)
   progress.py     # rich progress bars (downloads, row loads, index, enrichment)
@@ -76,6 +76,7 @@ etc/*_region.json # per-region country lists, not used by the pipeline (yet)
 - `available` rows have 7 fields (no opaque-id), and `cc`/`date` are often empty strings.
 - The Routinator source is its `/json` export (not `/csv`, since 2.2): ~90 MB, ~5 MB gzipped on the wire (httpx decodes it; the cache holds the decoded file). `asn` looks like `AS28000`. One file feeds several tables, so a loader returns one `meta` row per table.
 - RIS dumps are gzipped, tab-separated, and have `%` comment lines and a blank line. `origin_as` can be an AS-set like `{40179}`, and `::/0` and other prefixes outside `2000::/3` appear.
+- ASPAs (`aspas` in the Routinator JSON) are one per customer AS. `providers` is stored as sorted plain AS numbers (`'174,6939'`) and, for joins, as `aspa_providers` rows. AS0 as a provider means "no providers" and is kept as published. RIS gives no AS paths, so ASPA path verification isn't possible.
 - The CC enrichment must match on address family and status `allocated`/`assigned`, and default to `'ZZ'`. Its fast nearest-start lookup is exact only because allocated/assigned delegations don't overlap within a type. If that ever changes, `enrich.py` needs revisiting.
 - ROV must compare **full prefixes**, never `istart`/`iend` alone: IPv6 `istart` is in /64 units, and ROAs and routes go up to /128. ROAs overlap heavily (nested), so the nearest-start trick from `enrich.py` does **not** apply. `rov.py` indexes ROAs by (family, length, network) instead.
 - To check ROV against Routinator after changing `rov.py`, run `uv run python scripts/rov_crosscheck.py var/netdata-*.db`. It hits the network.

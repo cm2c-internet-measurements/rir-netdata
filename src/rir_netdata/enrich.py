@@ -1,8 +1,9 @@
-"""Country-code enrichment of ``roadata`` from ``numres`` (SPEC.md §4.4).
+"""Country-code enrichment of ``roadata`` and ``aspadata`` from ``numres`` (SPEC.md §4.4).
 
 For each ROA, ``cc`` comes from the allocated/assigned delegation of the same address family that
 contains the ROA's first address, and ``origin_as_cc`` from the one containing its origin ASN.
-No match gives ``'ZZ'``. All trust anchors are enriched.
+For each ASPA, ``asid_cc`` comes from the one containing its customer ASN. No match gives
+``'ZZ'``. All trust anchors are enriched.
 
 Lookups take the nearest delegation starting at or below the value (one index probe on
 ``numres_type_range``) and then check that it actually covers the value. That is exact because
@@ -34,8 +35,14 @@ _UPDATE = f"""
 """
 
 
-def count(conn: sqlite3.Connection) -> int:
-    return conn.execute("SELECT count(*) FROM roadata").fetchone()[0]
+_UPDATE_ASPA = f"""
+    UPDATE aspadata SET
+        asid_cc = coalesce(({_LOOKUP.format(value="aspadata.asid", rtype="'asn'")}), 'ZZ')
+"""
+
+
+def count(conn: sqlite3.Connection, table: str = "roadata") -> int:
+    return conn.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
 
 
 def run(conn: sqlite3.Connection, tick: Tick | None = None) -> int:
@@ -50,3 +57,11 @@ def run(conn: sqlite3.Connection, tick: Tick | None = None) -> int:
         if tick:
             tick(n)
     return done
+
+
+def run_aspa(conn: sqlite3.Connection, tick: Tick | None = None) -> int:
+    """Fill ``aspadata.asid_cc``; return the number of ASPAs enriched (a few thousand: one pass)."""
+    n = conn.execute(_UPDATE_ASPA).rowcount
+    if tick:
+        tick(n)
+    return n
