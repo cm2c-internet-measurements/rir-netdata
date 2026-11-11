@@ -15,7 +15,7 @@ Example override file (every key is optional)::
     lacnic = "https://mirror.example.net/delegated-lacnic-extended-latest"
 
     [sources.rpki]
-    url = "https://rpki.example.net/csv"
+    url = "https://rpki.example.net/json"
 
     [sources.riswhois]
     ipv4 = "https://www.ris.ripe.net/dumps/riswhoisdump.IPv4.gz"
@@ -35,7 +35,7 @@ DEFAULT_DELEGATED = {
     "afrinic": "https://ftp.afrinic.net/pub/stats/afrinic/delegated-afrinic-extended-latest",
     "apnic": "https://ftp.apnic.net/stats/apnic/delegated-apnic-extended-latest",
 }
-DEFAULT_RPKI = {"url": "https://routinator.labs.lacnic.net/csv"}
+DEFAULT_RPKI = {"url": "https://routinator.labs.lacnic.net/json"}  # Routinator JSON
 DEFAULT_RISWHOIS = {
     "ipv4": "https://www.ris.ripe.net/dumps/riswhoisdump.IPv4.gz",
     "ipv6": "https://www.ris.ripe.net/dumps/riswhoisdump.IPv6.gz",

@@ -23,7 +23,7 @@ Each run produces `netdata-YYYYMMDD.db` with four tables. It can optionally also
 | Table | What it holds | Built from |
 | --- | --- | --- |
 | **`numres`** | Every IPv4, IPv6 and ASN delegation from the five Regional Internet Registries: holder country, status, date, and holder id | The *delegated-extended* statistics files of [AFRINIC](https://www.afrinic.net), [APNIC](https://www.apnic.net), [ARIN](https://www.arin.net), [LACNIC](https://www.lacnic.net) and [RIPE NCC](https://www.ripe.net) |
-| **`roadata`** | Every validated RPKI ROA from all five trust anchors, tagged with the country of the prefix and of its origin AS | A [Routinator](https://routinator.docs.nlnetlabs.nl/) CSV export |
+| **`roadata`** | Every validated RPKI ROA from all five trust anchors, tagged with the country of the prefix and of its origin AS | The JSON export of a [Routinator](https://routinator.docs.nlnetlabs.nl/) RPKI validator |
 | **`riswhois`** | Which AS originates each prefix in the global BGP table, how many RIS peers see it, and its **RPKI validity** (`valid` / `invalid` / `notfound`) | [RIPE RIS](https://ris.ripe.net) whois dumps, IPv4 and IPv6 |
 | **`meta`** | Provenance: the URL, fetch time, source serial, row count and SHA-256 of every input file | The run itself |
 
@@ -52,7 +52,7 @@ Every row also gets **convenience columns**, so range and size questions become 
 flowchart LR
     subgraph Sources
         D["5 × RIR delegated-extended"]
-        R["Routinator ROA CSV"]
+        R["Routinator JSON (ROAs)"]
         W["RIPE RIS whois dumps"]
     end
     D & R & W -->|"download<br/>(cached, with retries)"| P["parse + derive<br/>istart / iend / prefix / equiv"]
@@ -122,7 +122,7 @@ cache_dir = "/var/cache/netdata"
 attempts = 5
 
 [sources.rpki]
-url = "https://my-validator.example.net/csv"
+url = "https://my-validator.example.net/json"   # a Routinator JSON export
 ```
 
 Every key is optional, and a misspelled key is an error rather than being silently ignored. All the settings are listed in [`config.py`](src/rir_netdata/config.py).
