@@ -1,6 +1,6 @@
 [project]
 name = "rir-netdata"
-version = "2.2.0"
+version = "2.2.1"
 description = "Builds a daily SQLite snapshot of RIR delegations, RPKI ROAs and RIS whois data."
 readme = "README.md"
 license = "BSD-2-Clause"
